@@ -12,7 +12,7 @@ class FATFileEntry : public FileEntry{
         virtual const char* Name() override;
         virtual const FileType Type() override;
         virtual File* Open(FileOpenMode mode) override;
-        virtual void Release(File* file) override;
+        virtual void Release() override;
     private:
         FATDirectoryEntry DirectoryEntry;
         FATFileSystem* fs;

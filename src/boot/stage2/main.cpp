@@ -4,6 +4,7 @@
 #include <dev/MBR.hpp>
 #include <arch/i686/BiosDisk.hpp>
 #include <Memory/Stage2Allocator.hpp>
+#include <cpp/NewDelete.hpp>
 
 #include <core/Defs.hpp>
 #include <core/arch/i686/VGATextDevice.hpp>
@@ -21,6 +22,8 @@ arch::i686::E9Device E9Device;
 BootParameters bootParams;
 Stage2Allocator g_Allocator(reinterpret_cast<void*>(MEMORY_MIN), MEMORY_MAX - MEMORY_MIN);
 EXPORT void ASMCALL Start(uint16_t bootDrive,uint32_t partition){
+    
+    SetCppAlloc(&g_Allocator);
     VGADevice.Clear();
 
     TextDevice Screen(&VGADevice);
@@ -50,6 +53,8 @@ EXPORT void ASMCALL Start(uint16_t bootDrive,uint32_t partition){
     if(!fs.Initialize(part)){
         Debug::Critical("Stage2", "[CRITICAL] Failed to initialize FATFileSystem!");
     }
+
+    File* kernel = fs.Open("kernel.elf", FileOpenMode::Read);
 
 end:
     for(;;);

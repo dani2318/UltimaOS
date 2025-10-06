@@ -167,8 +167,8 @@ FileEntry* FATFile::ReadFileEntry(){
     return nullptr;
 }
 
-void FATFile::FreeFileEntry(FileEntry* fileEntry) {
-    fs->ReleaseFileEntry((FATFileEntry*)(fileEntry));
+void FATFile::Release() {
+    fs->ReleaseFile(this);
 }
 
 /// @brief Unsupported!!! THIS FUNCTION IS NOT YET IMPLEMENTED!

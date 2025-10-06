@@ -1,5 +1,7 @@
 #include "FileSystem.hpp"
 #include <core/Debug.hpp>
+#include <core/cpp/String.hpp>
+#include <core/cpp/Memory.hpp>
 
 #define module_name "FileSystem"
 
@@ -17,65 +19,65 @@ File* FileSystem::Open(const char* path, FileOpenMode mode){
     while (*path) {
         // extract next file name from path
         bool isLast = false;
-        const char* delim = strchr(path, '/');
+        const char* delim = String::Find(path, '/');
         if (delim != NULL)
         {
-            memcpy(name, path, delim - path);
+            Memory::Copy(name, path, delim - path);
             name[delim - path] = '\0';
             path = delim + 1;
         }
         else
         {
-            unsigned len = strlen(path);
-            memcpy(name, path, len);
+            unsigned len = String::Length(path);
+            Memory::Copy(name, path, len);
             name[len + 1] = '\0';
             path += len;
             isLast = true;
         }
-
-        Debug::Info(module_name,"Searching for: %s", name);
-
-        // find directory entry in current directory
-        FileEntry* entry = root->ReadFileEntry();
-        while(entry != nullptr){
-            if(strcmp(entry->Name(), name) == 0){
-                //TODO: Close root & release
-                root = entry->Open(isLast ? mode : FileOpenMode::Read);
-                entry = nullptr;
-                if(isLast) return root;
-            }else{
-                root->FreeFileEntry(entry);
-                entry = root->ReadFileEntry();
-            }
-            // check if directory
-            if (entry->Type() == FileType::Directory)
-            {
-                Debug::Error(module_name," %s not a director", name);
-                return NULL;
-            }
-        }
-        if (FAT_FindFile(disk, current, name, &entry))
+        FileEntry* nextEntry = FindFile(root, name);
+        if (nextEntry)
         {
-            FAT_Close(current);
+            //Release current
+            root->Release();
 
             // check if directory
-            if (!isLast && entry.Attributes & FAT_ATTRIBUTE_DIRECTORY == 0)
+            if (!isLast && nextEntry->Type() == FileType::Directory)
             {
-                printf("FAT: %s not a directory\r\n", name);
-                return NULL;
+                Debug::Error(module_name,"%s not a directory\r\n", name);
+                return nullptr;
             }
 
             // open new directory entry
-            current = FAT_OpenEntry(disk, &entry);
+            root = nextEntry->Open(isLast? mode : FileOpenMode::Read);
+            nextEntry->Release();
         }
         else
         {
-            FAT_Close(current);
+            //Release root
+            root->Release();
 
-            printf("FAT: %s not found\r\n", name);
-            return NULL;
+            Debug::Error(module_name,"%s not found\r\n", name);
+            return nullptr;
         }
     }
 
-    return current;
+    return root;
+}
+
+
+FileEntry* FileSystem::FindFile(File* parent, const char* name){
+    Debug::Info(module_name,"Searching for: %s", name);
+
+    // find directory entry in current directory
+    FileEntry* entry = parent->ReadFileEntry();
+    while(entry != nullptr){
+        if(String::Compare(entry->Name(), name) == 0){
+            return entry;
+        }else{
+            entry->Release();
+            entry = parent->ReadFileEntry();
+        }
+
+    }
+    return nullptr;
 }

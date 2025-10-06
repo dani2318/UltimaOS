@@ -7,5 +7,5 @@ class FileEntry;
 class File : BlockDevice{
     public:
         virtual FileEntry* ReadFileEntry() = 0;
-        virtual void FreeFileEntry(FileEntry* fileEntry) = 0;
+        virtual void Release() = 0;
 };

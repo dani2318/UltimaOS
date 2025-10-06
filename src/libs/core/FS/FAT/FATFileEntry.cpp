@@ -39,6 +39,6 @@ File* FATFileEntry::Open(FileOpenMode mode){
     return file;
 }
 
-void FATFileEntry::Release(File* file) {
-    fs->ReleaseFile((FATFile*) file);
+void FATFileEntry::Release() {
+    fs->ReleaseFileEntry(this);
 }

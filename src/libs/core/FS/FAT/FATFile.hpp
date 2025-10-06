@@ -16,13 +16,13 @@ class FATFile : public File {
         bool isOpened() const {return this->Opened;};
         bool ReadFileEntry(FATDirectoryEntry* dirEntry);
         
+        virtual void Release() override;
         virtual size_t Read(uint8_t* data, size_t size) override; 
         virtual size_t Write(const uint8_t* data, size_t size) override; 
         virtual bool Seek(SeekPos pos, int rel) override;
         virtual size_t Size() override { return size; };
         virtual size_t Position() override { return position; };
         virtual FileEntry* ReadFileEntry() override;
-        virtual void FreeFileEntry(FileEntry* fileEntry) override;
     private:
         bool UpdateCurrentCluster();
         uint8_t  Buffer[SectorSize];

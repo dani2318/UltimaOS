@@ -1,5 +1,5 @@
 #pragma once
-#include <dev/BlockDevice.hpp>
+#include <core/dev/BlockDevice.hpp>
 #include "File.hpp"
 #include "FileEntry.hpp"
 #include <stdbool.h>
@@ -10,4 +10,6 @@ class FileSystem{
         virtual bool Initialize(BlockDevice* device) = 0;
         virtual File* RootDirectory() = 0;
         File* Open(const char* path, FileOpenMode mode);
+    private:
+        virtual FileEntry* FindFile(File* parent, const char* name);
 };
