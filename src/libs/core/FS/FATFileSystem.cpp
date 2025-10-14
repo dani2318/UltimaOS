@@ -47,7 +47,7 @@ bool FATFileSystem::Initialize(BlockDevice* device) {
 
     // Trying to read the bootsector.
     if(!ReadBootSector()){
-        Debug::Error(module_name,"Failed to read bootsector!");
+        Debug::Error(module_name,"Failed to read bootsector! ");
         return false;
     }
 
