@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include <memdefs.h>
+#include <Memory/memdefs.h>
 #include <arch/i686/RealMemory.hpp>
 #include <dev/MBR.hpp>
 #include <arch/i686/BiosDisk.hpp>
@@ -54,7 +54,7 @@ EXPORT void ASMCALL Start(uint16_t bootDrive,uint32_t partition){
         Debug::Critical("Stage2", "[CRITICAL] Failed to initialize FATFileSystem!");
     }
 
-    File* kernel = fs.Open("kernel.elf", FileOpenMode::Read);
+    File* kernel = fs.Open("kernel.bin", FileOpenMode::Read);
 
 end:
     for(;;);

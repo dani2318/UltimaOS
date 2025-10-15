@@ -1,180 +1,204 @@
 #include "FATFile.hpp"
-#include <core/FS/FATFileSystem.hpp>
+#include <FS/FATFileSystem.hpp>
 #include <core/Debug.hpp>
 #include <core/cpp/Algorithm.hpp>
-#include <core/memory/Allocator.hpp>
-#include <core/FS/FAT/FATHeaders.hpp>
 #include <core/cpp/Memory.hpp>
 
-constexpr const char* module_name = "FATFile";
+#define LOG_MODULE "FatFile"
 
 FATFile::FATFile()
-    :   fs(nullptr),
-        Opened(false),
-        isRootDirectory(false),
-        position(),
-        size(),
-        FirstCluster(),
-        CurrentCluster(),
-        CurrentClusterIndex(0),
-        CurrentSectorInCluster()
+    : fs(nullptr),
+      Opened(false),
+      isRootDirectory(false),
+      position(),
+      size(),
+      FirstCluster(),
+      CurrentCluster(),
+      CurrentClusterIndex(0),
+      CurrentSectorInCluster()
 {
 }
 
-/// @brief This is used to read files for FAT32 FileSystems
-/// @param fileSystem       This should be a pointer to the filesystem
-/// @param firstCluster     The fistcluster to read
-/// @param size             The size to read
-/// @return A boolean that tell if the operation is compleated correctly
-bool FATFile::Open(FATFileSystem* fileSystem, uint32_t firstCluster,const char* name, uint32_t size, bool isDirectory){
-    
-    this->isRootDirectory = false;
-    this->position = 0;
-    this->size = size;
-    this->FirstCluster = firstCluster;
-    this->isDirectory = isDirectory;
-    this->CurrentCluster = this->FirstCluster;
-    this->CurrentClusterIndex = 0;
-    this->CurrentSectorInCluster = 0;
+bool FATFile::Open(FATFileSystem* fs, uint32_t firstCluster, const char* name, uint32_t size, bool isDirectory)
+{
+    isRootDirectory = false;
+    position = 0;
+    size = size;
+    isDirectory = isDirectory;
+    FirstCluster = firstCluster;
+    CurrentCluster = FirstCluster;
+    CurrentClusterIndex = 0;
+    CurrentSectorInCluster = 0;
 
-    if (!fileSystem->ReadSectorFromCluster(this->FirstCluster, CurrentSectorInCluster, this->Buffer)){
-        Debug::Error(module_name, "Failed to open file %s!!", name);
+    if (!fs->ReadSectorFromCluster(CurrentCluster, CurrentSectorInCluster, Buffer))
+    {
+        Debug::Error(LOG_MODULE, "FAT: open file %s failed - read error cluster=%u\n", name, CurrentCluster);
         return false;
     }
-    this->Opened = true;
 
-    return true;
-}
-/// @brief This is used to read the root directory in the FAT12 or FAT16 Filesystem
-/// @param fileSystem           This should be a pointer to the filesystem
-/// @param rootDirectoryLba     Start LBA of the root directory
-/// @param rootDirectorySize    Size of the root directory
-/// @return A boolean that tell if the operation is compleated correctly
-bool FATFile::OpenFat1216RootDirectory(FATFileSystem* fileSystem, uint32_t rootDirectoryLba, uint32_t rootDirectorySize){
-    this->isRootDirectory = true;
-    this->position = 0;
-    this->size = rootDirectorySize;
-    this->FirstCluster = rootDirectoryLba;
-    this->CurrentCluster = this->FirstCluster;
-    this->CurrentSectorInCluster = 0;
-
-    if (!fileSystem->ReadSector(this->FirstCluster, this->Buffer)){
-        Debug::Error(module_name,"Read root directory failed!!");
-        return false;
-    }
+    Opened = true;
     return true;
 }
 
-/// @brief Reads a File entry
-/// @param dirEntry       FATDirectoryEntry
-/// @return A boolean that tell if the operation is compleated correctly
-bool FATFile::ReadFileEntry(FATDirectoryEntry* dirEntry){
+bool FATFile::OpenFat1216RootDirectory(FATFileSystem* fs, uint32_t rootDirLba, uint32_t rootDirSize)
+{
+    isRootDirectory = true;
+    position = 0;
+    size = rootDirSize;
+    FirstCluster = rootDirLba;
+    CurrentCluster = FirstCluster;
+    CurrentClusterIndex = 0;
+    CurrentSectorInCluster = 0;
+
+    if (!fs->ReadSector(rootDirLba, Buffer))
+    {
+        Debug::Error(LOG_MODULE, "FAT: read root directory failed\r\n");
+        return false;
+    }
+
+    return true;
+}
+
+void FATFile::Release()
+{
+    fs->ReleaseFile(this);
+}
+
+bool FATFile::ReadFileEntry(FATDirectoryEntry* dirEntry)
+{
     return Read(reinterpret_cast<uint8_t*>(dirEntry), sizeof(FATDirectoryEntry)) == sizeof(FATDirectoryEntry);
 }
 
-uint32_t FATFile::Read(uint8_t* data, size_t byteCount){
-    uint8_t* original_data = data;
+size_t FATFile::Read(uint8_t* data, size_t byteCount)
+{
+    uint8_t* originalData = data;
+
     // don't read past the end of the file
     if (!isDirectory || (isDirectory && size != 0))
         byteCount = min(byteCount, size - position);
 
-    while(byteCount > 0){
+    while (byteCount > 0)
+    {
         uint32_t leftInBuffer = SectorSize - (position % SectorSize);
-        uint32_t take = min(byteCount,leftInBuffer);
+        uint32_t take = min(byteCount, leftInBuffer);
 
-        Memory::Copy(data, this->Buffer + position % SectorSize, take);
+        Memory::Copy(data, Buffer + position % SectorSize, take);
         data += take;
         position += take;
         byteCount -= take;
-        if(leftInBuffer == take){
-            if(isRootDirectory){
+
+        // printf("leftInBuffer=%lu take=%lu\r\n", leftInBuffer, take);
+        // See if we need to read more data
+        if (leftInBuffer == take)
+        {
+            // Special handling for root directory
+            if (isRootDirectory)
+            {
                 ++CurrentCluster;
-                if(!fs->ReadSector(CurrentCluster, this->Buffer)){
-                    Debug::Error(module_name,"Read error!!");
+
+                // read next sector
+                if (!fs->ReadSector(CurrentCluster, Buffer))
+                {
+                    Debug::Error(LOG_MODULE, "FAT: read error!\r\n");
                     break;
                 }
-            } else {
-                if(++CurrentSectorInCluster >= fs->GetFatData().BS.BootSector.SectorsPerCluster){
+            }
+            else
+            {
+                // calculate next cluster & sector to read
+                if (++CurrentSectorInCluster >= fs->Data().BS.BootSector.SectorsPerCluster)
+                {
                     CurrentSectorInCluster = 0;
                     CurrentCluster = fs->GetNextCluster(CurrentCluster);
                     ++CurrentClusterIndex;
                 }
 
-                if(CurrentCluster >= 0xFFFFFFF8){
+                if (CurrentCluster >= 0xFFFFFFF8)
+                {
+                    // Mark end of file
                     size = position;
                     break;
                 }
 
-                if(!fs->ReadSectorFromCluster(CurrentCluster + CurrentSectorInCluster, 1, this->Buffer)){
-                    Debug::Error(module_name,"Read error!!");
+                // read next sector
+                if (!fs->ReadSectorFromCluster(CurrentCluster, CurrentSectorInCluster, Buffer))
+                {
+                    Debug::Error(LOG_MODULE, "FAT: read error!");
                     break;
                 }
             }
         }
     }
 
-    return data - original_data;
+    return data - originalData;
 }
-bool FATFile::Seek(SeekPos pos, int rel) {
 
+size_t FATFile::Write(const uint8_t* data, size_t size)
+{
+    // not supported (yet)
+    return 0;
+}
+
+bool FATFile::Seek(SeekPos pos, int rel)
+{
     switch (pos)
     {
-        case SeekPos::Set:
-            position = static_cast<uint32_t>(max(0,rel));
-            break;
-        case SeekPos::Current:
-            if(rel < 0 && position < -rel) position = 0;
-            position = min(Size(), static_cast<uint32_t>(position + rel));
-            break;
-        case SeekPos::End:
-            if(rel < 0 && Size() < -rel) position = 0;
-            position = min(Size(), static_cast<uint32_t>(position + rel));
-            break;
+    case SeekPos::Set:
+        position = static_cast<uint32_t>(max(0, rel));
+        break;
+    
+    case SeekPos::Current:
+        if (rel < 0 && position < -rel)
+            position = 0;
+
+        position = min(Size(), static_cast<uint32_t>(position + rel));
+        
+    case SeekPos::End:
+        if (rel < 0 && Size() < -rel)
+            position = 0;
+        position = max(Size(), static_cast<uint32_t>(Size() + rel));
+
+        break;
     }
-    return UpdateCurrentCluster();
+
+    UpdateCurrentCluster();
+    return true;
 }
 
-bool FATFile::UpdateCurrentCluster(){
-    uint32_t ClusterSize = fs->GetFatData().BS.BootSector.SectorsPerCluster * SectorSize;
-    uint32_t desiredCluster = position / ClusterSize;
-    uint32_t desiredSector = (position % ClusterSize) / SectorSize;
-
-    if (desiredCluster == CurrentClusterIndex && desiredSector == CurrentSectorInCluster){
+bool FATFile::UpdateCurrentCluster()
+{
+    uint32_t clusterSize = fs->Data().BS.BootSector.SectorsPerCluster * SectorSize;
+    uint32_t desiredCluster = position / clusterSize;
+    uint32_t desiredSector = (position % clusterSize) / SectorSize;
+    
+    if (desiredCluster == CurrentClusterIndex && desiredSector == CurrentSectorInCluster)
         return true;
-    }
 
-    if(desiredCluster < CurrentClusterIndex){
+    if (desiredCluster < CurrentClusterIndex)
+    {
         CurrentClusterIndex = 0;
         CurrentCluster = FirstCluster;
     }
 
-    while (desiredCluster > CurrentClusterIndex){
+    while (desiredCluster > CurrentClusterIndex) 
+    {
         CurrentCluster = fs->GetNextCluster(CurrentCluster);
         ++CurrentClusterIndex;
     }
 
     CurrentSectorInCluster = desiredSector;
-    return fs->ReadSectorFromCluster(CurrentCluster, CurrentSectorInCluster, this->Buffer);
+    return fs->ReadSectorFromCluster(CurrentCluster, CurrentSectorInCluster, Buffer);
 }
 
-FileEntry* FATFile::ReadFileEntry(){
+FileEntry* FATFile::ReadFileEntry()
+{
     FATDirectoryEntry entry;
-    if(ReadFileEntry(&entry)){
+    if (ReadFileEntry(&entry))
+    {
         FATFileEntry* fileEntry = fs->AllocateFileEntry();
         fileEntry->Initialize(fs, entry);
         return fileEntry;
     }
+
     return nullptr;
-}
-
-void FATFile::Release() {
-    fs->ReleaseFile(this);
-}
-
-/// @brief Unsupported!!! THIS FUNCTION IS NOT YET IMPLEMENTED!
-/// @param data 
-/// @param size 
-/// @return 
-size_t FATFile::Write(const uint8_t* data, size_t size){
-    return 0;
 }
