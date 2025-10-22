@@ -1,22 +1,19 @@
 #include "FileSystem.hpp"
-#include <core/Debug.hpp>
 #include <core/cpp/String.hpp>
 #include <core/cpp/Memory.hpp>
 
-#define module_name "FileSystem"
-
-
-File* FileSystem::Open(const char* path, FileOpenMode mode){
+File* FileSystem::Open(const char* path, FileOpenMode mode)
+{
     char name[MAX_PATH_SIZE];
 
     // ignore leading slash
     if (path[0] == '/')
         path++;
 
-
     File* root = this->RootDirectory();
 
-    while (*path) {
+    while (*path) 
+    {
         // extract next file name from path
         bool isLast = false;
         const char* delim = String::Find(path, '/');
@@ -34,29 +31,30 @@ File* FileSystem::Open(const char* path, FileOpenMode mode){
             path += len;
             isLast = true;
         }
+
         FileEntry* nextEntry = FindFile(root, name);
         if (nextEntry)
         {
-            //Release current
+            // release current
             root->Release();
 
             // check if directory
-            if (!isLast && nextEntry->Type() == FileType::Directory)
+            if (!isLast && nextEntry->Type() != FileType::Directory)
             {
-                Debug::Error(module_name,"%s not a directory\r\n", name);
+                // printf("FAT: %s not a directory\r\n", name);
                 return nullptr;
             }
 
             // open new directory entry
-            root = nextEntry->Open(isLast? mode : FileOpenMode::Read);
+            root = nextEntry->Open(isLast ? mode : FileOpenMode::Read);
             nextEntry->Release();
         }
         else
         {
-            //Release root
+            // release current
             root->Release();
 
-            Debug::Error(module_name,"%s not found\r\n", name);
+            // printf("FAT: %s not found\r\n", name);
             return nullptr;
         }
     }
@@ -64,20 +62,21 @@ File* FileSystem::Open(const char* path, FileOpenMode mode){
     return root;
 }
 
-
-FileEntry* FileSystem::FindFile(File* parent, const char* name){
-    Debug::Info(module_name,"Searching for: %s", name);
-
+FileEntry* FileSystem::FindFile(File* dir, const char* name)
+{
     // find directory entry in current directory
-    FileEntry* entry = parent->ReadFileEntry();
-    while(entry != nullptr){
-        if(String::Compare(entry->Name(), name) == 0){
+    FileEntry* entry = dir->ReadFileEntry();
+    while (entry != nullptr)
+    {
+        if (strcmp(entry->Name(), name) == 0)
+        {
+            // todo: close & release root
             return entry;
-        }else{
-            entry->Release();
-            entry = parent->ReadFileEntry();
         }
-
+       
+        entry->Release();
+        entry = dir->ReadFileEntry();
     }
+
     return nullptr;
 }

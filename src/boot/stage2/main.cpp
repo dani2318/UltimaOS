@@ -52,9 +52,10 @@ EXPORT void ASMCALL Start(uint16_t bootDrive,uint32_t partition){
     FATFileSystem fs;
     if(!fs.Initialize(part)){
         Debug::Critical("Stage2", "[CRITICAL] Failed to initialize FATFileSystem!");
+        for(;;);
     }
 
-    File* kernel = fs.Open("kernel.bin", FileOpenMode::Read);
+    File* kernel = fs.Open("kernel.elf", FileOpenMode::Read);
 
 end:
     for(;;);

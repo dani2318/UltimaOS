@@ -52,7 +52,7 @@ start:
     mov [ebr_drive_number], dl
 
     ; check extensions present
-    mov ah, 41h
+    mov ah, 0x41
     mov bx, 0x55AA
     stc
     int 13h

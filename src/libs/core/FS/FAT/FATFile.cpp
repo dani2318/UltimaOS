@@ -29,6 +29,7 @@ bool FATFile::Open(FATFileSystem* fs, uint32_t firstCluster, const char* name, u
     CurrentCluster = FirstCluster;
     CurrentClusterIndex = 0;
     CurrentSectorInCluster = 0;
+    this->fs = fs;
 
     if (!fs->ReadSectorFromCluster(CurrentCluster, CurrentSectorInCluster, Buffer))
     {
@@ -49,6 +50,7 @@ bool FATFile::OpenFat1216RootDirectory(FATFileSystem* fs, uint32_t rootDirLba, u
     CurrentCluster = FirstCluster;
     CurrentClusterIndex = 0;
     CurrentSectorInCluster = 0;
+    this->fs = fs;
 
     if (!fs->ReadSector(rootDirLba, Buffer))
     {
@@ -156,7 +158,7 @@ bool FATFile::Seek(SeekPos pos, int rel)
     case SeekPos::End:
         if (rel < 0 && Size() < -rel)
             position = 0;
-        position = max(Size(), static_cast<uint32_t>(Size() + rel));
+        position = min(Size(), static_cast<uint32_t>(Size() + rel));
 
         break;
     }

@@ -24,25 +24,22 @@ bool FATFileSystem::Initialize(BlockDevice* device)
         Debug::Error(LOG_MODULE, "FAT: read boot sector failed");
         return false;
     }
+    DetectFatType();
 
     m_Data->FatCachePosition = 0xFFFFFFFF;
 
-    m_TotalSectors = m_Data->BS.BootSector.TotalSectors;
-    if (m_TotalSectors == 0) {          // fat32
+    if (m_FatType == FAT32) {          // fat32
         m_TotalSectors = m_Data->BS.BootSector.LargeSectorCount;
-    }
-
-    bool isFat32 = false;
-    m_SectorsPerFat = m_Data->BS.BootSector.SectorsPerFat;
-    if (m_SectorsPerFat == 0) {         // fat32
-        isFat32 = true;
         m_SectorsPerFat = m_Data->BS.BootSector.EBR32.SectorsPerFat;
+    }else{
+        m_TotalSectors = m_Data->BS.BootSector.TotalSectors;
+        m_SectorsPerFat = m_Data->BS.BootSector.SectorsPerFat;
     }
     
     // open root directory file
     uint32_t rootDirLba;
     uint32_t rootDirSize;
-    if (isFat32) {
+    if (m_FatType == FAT32) {
         m_DataSectionLba = m_Data->BS.BootSector.ReservedSectors + m_SectorsPerFat * m_Data->BS.BootSector.FatCount;
         if (!m_Data->RootDirectory.Open(this, m_Data->BS.BootSector.EBR32.RootdirCluster, "", 0, true))
             return false;
@@ -57,7 +54,6 @@ bool FATFileSystem::Initialize(BlockDevice* device)
             return false;
     }
 
-    DetectFatType();
 
     m_Data->LFNCount = 0;
 
