@@ -1,174 +1,172 @@
 #include "FATFileSystem.hpp"
+#include "FAT/FATHeaders.hpp"
+#include "FAT/FATFileEntry.hpp"
 #include <Debug.hpp>
 
-constexpr const char* module_name = "FAT";
+#define LOG_MODULE "FAT"
 
-constexpr int ROOT_DIRECTORY_HANDLE = -1;
-
-FATFileSystem::FATFileSystem()
-    : device(), 
-      Data(new FATData()),
-      DataSectionLba(),
-      FatType(),
-      TotalSectors(),
-      SectorsPerFat() {}
-
-void FATFileSystem::Detect() {
-    uint32_t dataCluster = (TotalSectors - DataSectionLba) / Data->BS.BootSector.SectorsPerCluster;
-    if (dataCluster < 0xFF5) {
-        FatType = FAT12;
-    } else if (Data->BS.BootSector.SectorsPerFat != 0) {
-        FatType = FAT16;
-    } else{
-        FatType = FAT32;
-    }
-}
-
-uint32_t FATFileSystem::ClusterToLba(uint32_t cluster)
+FATFileSystem::FATFileSystem() : 
+    m_Device(),
+    m_Data(new FATData()),
+    m_DataSectionLba(),
+    m_FatType(),
+    m_TotalSectors(),
+    m_SectorsPerFat()
 {
-    return DataSectionLba + (cluster - 2) * Data->BS.BootSector.SectorsPerCluster;
 }
 
-bool FATFileSystem::ReadSectorFromCluster(uint32_t cluster, uint32_t sectorOffset, uint8_t* buffer){
-    return ReadSector(this->ClusterToLba(cluster) + sectorOffset, buffer);
-}
-
-bool FATFileSystem::ReadBootSector(){
-    return ReadSector(0, Data->BS.BootSectorBytes);
-}
-
-bool FATFileSystem::ReadSector(uint32_t lba, uint8_t* buffer, size_t count){
-    this->device->Seek(SeekPos::Set, lba*SectorSize);
-    return this->device->Read(buffer, count * SectorSize) == count *SectorSize;
-}
-
-bool FATFileSystem::Initialize(BlockDevice* device) {
-    this->device = device;
+bool FATFileSystem::Initialize(BlockDevice* device)
+{
+    m_Device = device;
 
     // Trying to read the bootsector.
     if(!ReadBootSector()){
         Debug::Error(module_name,"Failed to read bootsector! ");
         return false;
     }
+    DetectFatType();
 
-    // Setting FatCachePosition to 0xFFFFFFFF (this number will change fater the Initialization and the Filesystem started to read files).
-    Data->FatCachePosition = 0xFFFFFFFF;
+    m_Data->FatCachePosition = 0xFFFFFFFF;
 
-    Detect();
-
-    // FatType is set by the call to the 'Detect()' function before if is equal to FATType::FAT32 then the file system is using FAT32 and the boolean is true otherwise is false
-    bool isFAT32 = FatType == FATType::FAT32;
-
-    // If we are using FAT32 and should use 'g_Data->BS.BootSector.EBR32.SectorsPerFat' as SectorPerFat
-    // and should use 'g_Data->BS.BootSector.LargeSectorCount' as TotalSectors
-
-    if(isFAT32){
-        TotalSectors = Data->BS.BootSector.LargeSectorCount;
-        SectorsPerFat = Data->BS.BootSector.EBR32.SectorsPerFat;
-    }else{  
-        // In this case we are in FAT12 or FAT16
-        TotalSectors = Data->BS.BootSector.TotalSectors;
-        SectorsPerFat = Data->BS.BootSector.SectorsPerFat;
+    if (m_FatType == FAT32) {          // fat32
+        m_TotalSectors = m_Data->BS.BootSector.LargeSectorCount;
+        m_SectorsPerFat = m_Data->BS.BootSector.EBR32.SectorsPerFat;
+    }else{
+        m_TotalSectors = m_Data->BS.BootSector.TotalSectors;
+        m_SectorsPerFat = m_Data->BS.BootSector.SectorsPerFat;
     }
     
-    // Reading from the file system the Directory Entry of the Root Directory.
-    if (isFAT32) {
-        DataSectionLba = Data->BS.BootSector.ReservedSectors + SectorsPerFat * Data->BS.BootSector.FatCount;
-        if(!Data->RootDirectory.Open(this, Data->BS.BootSector.EBR32.RootdirCluster,"", 0xFFFFFFFF, true))
+    // open root directory file
+    uint32_t rootDirLba;
+    uint32_t rootDirSize;
+    if (m_FatType == FAT32) {
+        m_DataSectionLba = m_Data->BS.BootSector.ReservedSectors + m_SectorsPerFat * m_Data->BS.BootSector.FatCount;
+        if (!m_Data->RootDirectory.Open(this, m_Data->BS.BootSector.EBR32.RootdirCluster, "", 0, true))
             return false;
-    } else {
-        uint32_t rootDirLBA = Data->BS.BootSector.ReservedSectors + SectorsPerFat * Data->BS.BootSector.FatCount;
-        uint32_t rootDirSize = sizeof(FATDirectoryEntry) * Data->BS.BootSector.DirEntryCount;
-        uint32_t rootDirectorySectors = (rootDirSize + Data->BS.BootSector.BytesPerSector - 1) / Data->BS.BootSector.BytesPerSector;
-        DataSectionLba = rootDirLBA + rootDirectorySectors;
-        if(!Data->RootDirectory.OpenFat1216RootDirectory(this, rootDirLBA, rootDirSize))
+    }
+    else {
+        rootDirLba = m_Data->BS.BootSector.ReservedSectors + m_SectorsPerFat * m_Data->BS.BootSector.FatCount;
+        rootDirSize = sizeof(FATDirectoryEntry) * m_Data->BS.BootSector.DirEntryCount;
+        uint32_t rootDirSectors = (rootDirSize + m_Data->BS.BootSector.BytesPerSector - 1) / m_Data->BS.BootSector.BytesPerSector;
+        m_DataSectionLba = rootDirLba + rootDirSectors;
+
+        if (!m_Data->RootDirectory.OpenFat1216RootDirectory(this, rootDirLba, rootDirSize))
             return false;
     }
 
-    // Long file name is 0 by default!
-    Data->LFNCount = 0;
+
+    m_Data->LFNCount = 0;
 
     return true;
 }
 
-FATFile* FATFileSystem::AllocateFile(){
-    return Data->OpenedFilePool.Allocate();
+FATFile* FATFileSystem::AllocateFile()
+{
+    return m_Data->OpenedFilePool.Allocate();
 }
 
-void FATFileSystem::ReleaseFile(FATFile* file){
-    Data->OpenedFilePool.Free(file);
+void FATFileSystem::ReleaseFile(FATFile* file)
+{
+    m_Data->OpenedFilePool.Free(file);
 }
 
-FATFileEntry* FATFileSystem::AllocateFileEntry(){
-    return Data->FileEntryPool.Allocate();
+FATFileEntry* FATFileSystem::AllocateFileEntry()
+{
+    return m_Data->FileEntryPool.Allocate();
 }
 
-void FATFileSystem::ReleaseFileEntry(FATFileEntry* file){
-    Data->FileEntryPool.Free(file);
-}
-
-File* FATFileSystem::RootDirectory(){
-    return &Data->RootDirectory;
+void FATFileSystem::ReleaseFileEntry(FATFileEntry* fileEntry)
+{
+    m_Data->FileEntryPool.Free(fileEntry);
 }
 
 
-uint32_t FATFileSystem::GetNextCluster(uint32_t currentCluster){
+File* FATFileSystem::RootDirectory()
+{
+    return &m_Data->RootDirectory;
+}
 
-    // Determine the offset of the entry to read.
+bool FATFileSystem::ReadSector(uint32_t lba, uint8_t* buffer, size_t count)
+{
+    m_Device->Seek(SeekPos::Set, lba * SectorSize);
+    return (m_Device->Read(buffer, count * SectorSize) == count * SectorSize);
+}
+
+bool FATFileSystem::ReadSectorFromCluster(uint32_t cluster, uint32_t sectorOffset, uint8_t* buffer)
+{
+    return ReadSector(ClusterToLba(cluster) + sectorOffset, buffer);
+}
+
+bool FATFileSystem::ReadBootSector()
+{
+    return ReadSector(0, m_Data->BS.BootSectorBytes);
+}
+
+uint32_t FATFileSystem::ClusterToLba(uint32_t cluster)
+{
+    return m_DataSectionLba + (cluster - 2) * m_Data->BS.BootSector.SectorsPerCluster;
+}
+
+void FATFileSystem::DetectFatType()
+{
+    uint32_t dataClusters = (m_TotalSectors - m_DataSectionLba) / m_Data->BS.BootSector.SectorsPerCluster;
+    if (dataClusters < 0xFF5) 
+        m_FatType = 12;
+    else if (m_Data->BS.BootSector.SectorsPerFat != 0)
+        m_FatType = 16;
+    else m_FatType = 32;
+}
+
+uint32_t FATFileSystem::GetNextCluster(uint32_t currentCluster)
+{    
+    // Determine the byte offset of the entry we need to read
     uint32_t fatIndex;
-    if (FatType == FAT12) {
+    if (m_FatType == 12) {
         fatIndex = currentCluster * 3 / 2;
-    } else if(FatType == FAT16) {
+    }
+    else if (m_FatType == 16) {
         fatIndex = currentCluster * 2;
-    } else /* if (g_FatType == 32)*/ {
+    }
+    else /*if (m_FatType == 32)*/ {
         fatIndex = currentCluster * 4;
     }
 
-    // Check if cache has correct number
-
+    // Make sure cache has the right number
     uint32_t fatIndexSector = fatIndex / SectorSize;
-
-    if( fatIndexSector < Data->FatCachePosition
-        || fatIndexSector >= Data->FatCachePosition + SectorSize
-    ){
+    if (fatIndexSector < m_Data->FatCachePosition 
+        || fatIndexSector >= m_Data->FatCachePosition + FatCacheSize)
+    {
         ReadFat(fatIndexSector);
-        Data->FatCachePosition = fatIndexSector;
+        m_Data->FatCachePosition = fatIndexSector;
     }
 
-    fatIndex -= (Data->FatCachePosition * SectorSize);
+    fatIndex -= (m_Data->FatCachePosition * SectorSize);
 
     uint32_t nextCluster;
-    if (FatType == FAT12) {
-        if(currentCluster % 2 == 0){
-            nextCluster = (*(uint16_t *)(Data->FatCache + fatIndex)) & 0x0FFF;
-        }else {
-            nextCluster = (*(uint16_t *)(Data->FatCache + fatIndex)) >> 4;
-        }
-
+    if (m_FatType == 12) {
+        if (currentCluster % 2 == 0)
+            nextCluster = (*(uint16_t*)(m_Data->FatCache + fatIndex)) & 0x0FFF;
+        else
+            nextCluster = (*(uint16_t*)(m_Data->FatCache + fatIndex)) >> 4;
+        
         if (nextCluster >= 0xFF8) {
             nextCluster |= 0xFFFFF000;
         }
-
-    } else if(FatType == FAT16) {
-        nextCluster = *(uint16_t *)(Data->FatCache + fatIndex);
-
+    }
+    else if (m_FatType == 16) {
+        nextCluster = *(uint16_t*)(m_Data->FatCache + fatIndex);
         if (nextCluster >= 0xFFF8) {
             nextCluster |= 0xFFFF0000;
         }
-
-    } else /*if (g_FatType == 32)*/ {
-        nextCluster = *(uint32_t *)(Data->FatCache + fatIndex);
+    }
+    else /*if (m_FatType == 32)*/ {
+        nextCluster = *(uint32_t*)(m_Data->FatCache + fatIndex);
     }
 
     return nextCluster;
 }
 
-
 bool FATFileSystem::ReadFat(uint32_t lbaOffset)
 {
-    return ReadSector(
-        Data->BS.BootSector.ReservedSectors + lbaOffset,
-        Data->FatCache,
-        FatCacheSize
-    );
+    return ReadSector(m_Data->BS.BootSector.ReservedSectors + lbaOffset, m_Data->FatCache, FatCacheSize);
 }

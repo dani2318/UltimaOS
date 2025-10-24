@@ -1,4 +1,4 @@
-%include "ProtectedMode.inc"
+%include "src/boot/stage2/arch/i686/ProtectedMode.inc"
 
 
 global BIOSDiskExtensionPresent
