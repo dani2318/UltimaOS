@@ -19,9 +19,9 @@ bool FATFileSystem::Initialize(BlockDevice* device)
 {
     m_Device = device;
 
-    if (!ReadBootSector())
-    {
-        Debug::Error(LOG_MODULE, "FAT: read boot sector failed");
+    // Trying to read the bootsector.
+    if(!ReadBootSector()){
+        Debug::Error(module_name,"Failed to read bootsector! ");
         return false;
     }
     DetectFatType();
