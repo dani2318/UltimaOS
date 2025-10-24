@@ -16,46 +16,7 @@ section .fsjump
 jmp short start
 nop
 
-section .fsheaders
-
-%if (FILESYSTEM == fat12) || (FILESYSTEM == fat16) || (FILESYSTEM == fat32)
-
-    bdb_oem:                    db 'MSWIN4.1'           ; 8 bytes
-    bdb_bytes_per_sector:       dw 512
-    bdb_sectors_per_cluster:    db 1
-    bdb_reserved_sectors:       dw 1
-    bdb_fat_count:              db 2
-    bdb_dir_entries_count:      dw 0E0h
-    bdb_total_sectors:          dw 2880                 ; 2880 * 512 = 1.44MB
-    bdb_media_descriptor_type:  db 0F0h                 ; F0 = 3.5" floppy disk
-    bdb_sectors_per_fat:        dw 9                    ; 9 sectors/fat
-    bdb_sectors_per_track:      dw 18
-    bdb_heads:                  dw 2
-    bdb_hidden_sectors:         dd 0
-    bdb_large_sector_count:     dd 0
-
-    %if (FILESYSTEM == fat32)
-
-        fat32_sectors_per_fat:                   dd 0
-        fat32_flags:                             dw 0
-        fat32_fat_version_number:                dw 0
-        fat32_rootdir_cluster:                   dd 0
-        fat32_fs_info_sector:                    dw 0
-        fat32_backup_boot_sector:                dw 0
-        fat32_reserved:                          times 12 db 0
-        
-    %endif
-
-    ; extended boot record
-    ebr_drive_number:           db 0                    ; 0x00 floppy, 0x80 hdd, useless
-                                db 0                    ; reserved
-    ebr_signature:              db 29h
-    ebr_volume_id:              db 12h, 34h, 56h, 78h   ; serial number, value doesn't matter
-    ebr_volume_label:           db 'NEO  OS    '        ; 11 bytes, padded with spaces
-    ebr_system_id:              db 'FAT12   '           ; 8 bytes
-
-
-%endif
+%include "src/boot/stage1/includes/fsheaders.inc"
 
 section .entry
 global start
@@ -91,7 +52,7 @@ start:
     mov [ebr_drive_number], dl
 
     ; check extensions present
-    mov ah, 41h
+    mov ah, 0x41
     mov bx, 0x55AA
     stc
     int 13h
@@ -154,6 +115,10 @@ start:
     cli                                 ; disable interrupts, this way CPU can't get out of "halt" state
     hlt
 
+%include "src/boot/stage1/includes/algo.inc"
+
+%include "src/boot/stage1/includes/disk.inc"
+
 section .text
 ;
 ; Error handlers
@@ -162,141 +127,6 @@ section .text
 floppy_error:
     jmp 0FFFFh:0                ; jump to beginning of BIOS, should reboot
 
-;
-; Convert LBA address to CHS address
-;   Parameters:
-;       -   ax: LBA address
-;   Returns:
-;       -   cx [bits 0-5]:  sector number
-;       -   cx [bits 6-15]: cylinders
-;       -   dh :            head
-lba_to_chs:
 
-    push ax
-    push dx
+%include "src/boot/stage1/includes/data.inc"
 
-    xor dx, dx                              ; dx = 0
-    div word [bdb_sectors_per_track]        ; ax = LBA / bdb_sectors_per_track
-
-    inc dx                                  ; dx = (LBA % bdb_sectors_per_track) + 1 = Sector
-    mov cx, dx                              ; cx = sector
-
-    xor dx, dx                              ; dx = 0
-    div word [bdb_heads]                    ; ax = (LBA / bdb_sectors_per_track) / heads = Cylinder
-                                            ; dx = (LBA / bdb_sectors_per_track) % heads = Head
-
-    mov dh, dl                              ; dh = head
-    mov ch, al                              ; hc = cylinder (lower 8 bits)
-    shl ah, 6
-    or cl, ah                               ; put upper 2 bits of cylinder in cl
-
-    pop ax
-    mov dl, al                              ; restore DL
-    pop ax
-    ret
-
-;
-; Read sectors from a disk
-;   Parameters:
-;       -   eax:    LBA address
-;       -   cl:     number of sectors to read (up to 128)
-;       -   dl:     drive number
-;       -   es:bx:  memory address where to store read data
-disk_read:
-
-    push eax
-    push bx
-    push cx
-    push dx
-    push si
-    push di
-
-    cmp byte [have_extensions], 1
-    jne .no_disk_extensions
-
-    mov [extensions_dap.lba], eax
-    mov [extensions_dap.segment], es
-    mov [extensions_dap.offset], bx
-    mov [extensions_dap.count], cl
-
-    mov ah, 42h
-    mov si, extensions_dap
-    mov di, 3                               ; Retry counter
-    jmp .retry
-
-.no_disk_extensions:
-    push cx                                 ; Save CL (number of sectors to read)
-    call lba_to_chs                         ; compute CHS
-    pop ax                                  ; AL = number of sector to read
-
-    mov ah, 02h
-    mov di, 3                               ; Retry counter
-
-.retry:
-    pusha                                   ; Save all register, it's unknown what the BIOS modifies
-    stc                                     ; Some BIOS'es do not set the carry flag, so we set it here
-    int 13h                                 ; if the carry flag is cleared = success
-    jnc .done
-
-    popa
-    call disk_reset
-
-    dec di
-    test di, di
-    jnz .retry
-
-.fail:
-    ; All 3 attempts failed!
-    jmp floppy_error
-
-.done:
-    popa                                    ; restore registers
-
-    pop di
-    pop si
-    pop dx
-    pop cx
-    pop bx
-    pop eax
-    ret
-
-;
-; Reset disk controller
-;   Parameters:
-;       -   dl:      drive number
-disk_reset:
-    pusha
-    mov ah, 0
-    stc
-    int 13h
-    jnc floppy_error
-    popa
-    ret
-
-section .rodata
-    file_stage2_bin:        db 'STAGE2  BIN'
-
-section .data
-
-    have_extensions:        db 0
-    extensions_dap:
-        .size:              db 10h
-                            db 0
-        .count:             dw 0
-        .offset:            dw 0
-        .segment:           dw 0
-        .lba:               dq 0
-
-
-    STAGE2_LOAD_SEGMENT     equ 0x0
-    STAGE2_LOAD_OFFSET      equ 0x500
-
-    PARTITION_ENTRY_SEGMENT equ 0x2000
-    PARTITION_ENTRY_OFFSET  equ 0x0
-
-section .data
-    global stage2_location
-    stage2_location:        times 30 db 0
-
-section .bss
-    buffer:

@@ -1,12 +1,11 @@
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
 #include <core/dev/BlockDevice.hpp>
-#include <core/FS/FileEntry.hpp>
+
+class FileEntry;
 
 class File : BlockDevice{
     public:
         virtual FileEntry* ReadFileEntry() = 0;
-
+        virtual void Release() = 0;
 };

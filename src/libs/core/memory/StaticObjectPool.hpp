@@ -1,5 +1,6 @@
 #pragma once
 #include <stddef.h>
+#include <stddef.h>
 #include <stdbool.h>
 
 template<typename T, size_t PoolSize>
@@ -33,10 +34,10 @@ T* StaticObjectPool<T, PoolSize>::Allocate(){
 
     for(size_t i = 0; i < PoolSize; i++){
         size_t idx = (i + size) % PoolSize;
-        if(ObjectInUse[idx] == false){
+        if(!ObjectInUse[idx]){
             ObjectInUse[idx] = true;
             size++;
-            return &ObjectInUse[idx];
+            return &Objects[idx];
         }
     }
     return nullptr;

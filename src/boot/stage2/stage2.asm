@@ -24,6 +24,7 @@ entry:
     call EnableA20
     call LoadGDT
 
+
     ; set protection enable flag in CR0
     mov eax, cr0
     or al, 1
@@ -31,12 +32,6 @@ entry:
 
     ; far jmp in pmode
     jmp dword 08:.pmode
-
-    ; expect boot drive in dl
-    xor dh, dh
-    push dx
-    ;call _cstart_
-
 
 .pmode:
     ; we are now in protected mode!

@@ -2,8 +2,6 @@
 #include <stdint.h>
 #include <core/Defs.hpp>
 
-
-
 namespace arch{
 
     namespace i686{

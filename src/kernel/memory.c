@@ -18,6 +18,7 @@ void * memset(void * ptr, int value, uint16_t num){
 
     return ptr;
 }
+
 int memcmp(const void * ptr1, const void * ptr2, uint16_t num){
     const uint8_t* u8Ptr1 = (const uint8_t *)ptr1;
     const uint8_t* u8Ptr2 = (const uint8_t *)ptr2;

@@ -3,8 +3,11 @@
 #include "FATFile.hpp"
 #include <stdint.h>
 #include <core/memory/StaticObjectPool.hpp>
+#include <core/FS/FAT/FATFileEntry.hpp>
 
 constexpr int MaxFileHandles  =  10;
+constexpr int MaxFileNameSize = 256;
+constexpr int RootDirectoryHandle = -1;
 constexpr int FatCacheSize    =  5;        // In sectors
 constexpr uint32_t FatLfnLast = 0x40;
 

@@ -1,4 +1,6 @@
 #include "FATFileEntry.hpp"
+#include <core/FS/FAT/FATFile.hpp>
+#include <core/FS/FATFileSystem.hpp>
 
 FATFileEntry::FATFileEntry() : fs(), DirectoryEntry() {}
 
@@ -29,10 +31,14 @@ File* FATFileEntry::Open(FileOpenMode mode){
 
     uint32_t size = DirectoryEntry.Size;
     uint32_t FirstCluster = DirectoryEntry.FirstClusterLow + ((uint32_t)DirectoryEntry.FirstClusterHigh << 16);
-    if(!file->Open(fs, FirstCluster, size, DirectoryEntry.Attributes & FAT_ATTRIBUTE_DIRECTORY)){
+    if(!file->Open(fs, FirstCluster, Name(), size, DirectoryEntry.Attributes & FAT_ATTRIBUTE_DIRECTORY)){
         fs->ReleaseFile(file);
         return nullptr;
     }
 
     return file;
+}
+
+void FATFileEntry::Release() {
+    fs->ReleaseFileEntry(this);
 }

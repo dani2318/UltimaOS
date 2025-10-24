@@ -1,4 +1,5 @@
 #pragma once
+#include <core/FS/File.hpp>
 
 enum class FileType{
     File,
@@ -14,4 +15,5 @@ class FileEntry {
         virtual const char* Name() = 0;
         virtual const FileType Type() = 0;
         virtual File* Open(FileOpenMode mode) = 0;
+        virtual void Release() = 0;
 };

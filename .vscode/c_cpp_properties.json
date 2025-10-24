@@ -4,7 +4,7 @@
             "name": "i686-elf",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/toolchain/i686-elf/lib/gcc/i686-elf/15.1.0/include/**",
+                "${workspaceFolder}/toolchain/i686-elf/lib/gcc/i686-elf/15.1.0/include/*",
                 "${workspaceFolder}/src/kernel"
             ],
             "defines": [],

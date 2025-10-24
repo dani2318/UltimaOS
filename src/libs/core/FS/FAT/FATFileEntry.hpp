@@ -1,8 +1,9 @@
 #pragma once
 
 #include <core/FS/FileEntry.hpp>
-#include <core/FS/FATFileSystem.hpp>
+#include <core/FS/File.hpp>
 #include <core/FS/FAT/FATHeaders.hpp>
+class FATFileSystem;
 
 class FATFileEntry : public FileEntry{
     public:
@@ -11,6 +12,7 @@ class FATFileEntry : public FileEntry{
         virtual const char* Name() override;
         virtual const FileType Type() override;
         virtual File* Open(FileOpenMode mode) override;
+        virtual void Release() override;
     private:
         FATDirectoryEntry DirectoryEntry;
         FATFileSystem* fs;
