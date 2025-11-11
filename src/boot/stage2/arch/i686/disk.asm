@@ -1,208 +1,229 @@
 %include "src/boot/stage2/arch/i686/ProtectedMode.inc"
 
+section .text
 
 global BIOSDiskExtensionPresent
 BIOSDiskExtensionPresent:
     [bits 32]
-
     push ebp
     mov ebp, esp
     
+    ; Save the drive parameter
+    movzx eax, byte [ebp + 8]
+    mov [.drive_number], al
+    
     x86_EnterRealMode
-
     [bits 16]
-
+    
     push bx
-
     mov ah, 41h
     mov bx, 0x55AA
-    mov dl, [bp + 8]            ; Drive number
-
+    mov dl, [.drive_number]
     stc
     int 13h
-
+    
+    ; Save result in a global variable, not on stack
     jc .Error
-
     cmp bx, 0xAA55
     jne .Error
-
-    mov eax, 1
+    mov byte [.result], 1
     jmp .EndIF    
-
 .Error:
-    mov eax, 0
-
+    mov byte [.result], 0
 .EndIF:
     pop bx
-
-    push eax
-
+    
     x86_EnterProtectedMode
-
     [bits 32]
-
-    pop eax
-
+    
+    ; Load result from global variable
+    movzx eax, byte [.result]
+    
     mov esp, ebp
     pop ebp
     ret
+
+section .data
+    .drive_number: db 0
+    .result: db 0
+
+section .text
+section .data
+; Global variables for BIOSDiskExtendedRead
+BIOSDiskExtendedRead.drive: db 0
+BIOSDiskExtendedRead.buffer: dd 0
+BIOSDiskExtendedRead.result: dd 0
+
+; Global variables for BIOSDiskExtendedGetDriveParams
+BIOSDiskExtendedGetDriveParams.drive: db 0
+BIOSDiskExtendedGetDriveParams.buffer: dd 0
+BIOSDiskExtendedGetDriveParams.result: dd 0
+
+; Global variables for BIOSDiskGetDriveParams
+BIOSDiskGetDriveParams.drive: db 0
+BIOSDiskGetDriveParams.driveType: dd 0
+BIOSDiskGetDriveParams.cylinders: dd 0
+BIOSDiskGetDriveParams.sectors: dd 0
+BIOSDiskGetDriveParams.heads: dd 0
+BIOSDiskGetDriveParams.result: dd 0
+
+; Global variables for BIOSDiskReset
+BIOSDiskReset.drive: db 0
+BIOSDiskReset.result: dd 0
+
+; Global variables for BIOSDiskRead
+BIOSDiskRead.drive: db 0
+BIOSDiskRead.cylinder: db 0
+BIOSDiskRead.sector: db 0
+BIOSDiskRead.head: db 0
+BIOSDiskRead.count: db 0
+BIOSDiskRead.buffer: dd 0
+BIOSDiskRead.result: dd 0
+
+section .text
 
 global BIOSDiskExtendedRead
 BIOSDiskExtendedRead:
     [bits 32]
-
     push ebp
     mov ebp, esp
     
+    ; Save parameters
+    mov al, [ebp + 8]
+    mov [BIOSDiskExtendedRead.drive], al
+    mov eax, [ebp + 12]
+    mov [BIOSDiskExtendedRead.buffer], eax
+    
     x86_EnterRealMode
-
     [bits 16]
-
+    
     push ds
     push esi
-
     mov ah, 42h
-    mov dl, [bp + 8]            ; Drive number
-    LinearToSegOffset [bp + 12], ds, esi, si
-
+    mov dl, [BIOSDiskExtendedRead.drive]
+    LinearToSegOffset [BIOSDiskExtendedRead.buffer], ds, esi, si
     stc
     int 13h
-
     mov eax, 1
     sbb eax, 0
-
+    mov [BIOSDiskExtendedRead.result], eax
     pop esi
     pop ds
-
-    push eax
-
+    
     x86_EnterProtectedMode
-
     [bits 32]
-
-    pop eax
-
+    
+    mov eax, [BIOSDiskExtendedRead.result]
     mov esp, ebp
     pop ebp
     ret
-
-
 
 global BIOSDiskExtendedGetDriveParams
 BIOSDiskExtendedGetDriveParams:
     [bits 32]
-
     push ebp
     mov ebp, esp
     
+    ; Save parameters
+    mov al, [ebp + 8]
+    mov [BIOSDiskExtendedGetDriveParams.drive], al
+    mov eax, [ebp + 12]
+    mov [BIOSDiskExtendedGetDriveParams.buffer], eax
+    
     x86_EnterRealMode
-
     [bits 16]
-
+    
     push ds
     push esi
-
     mov ah, 48h
-    mov dl, [bp + 8]            ; Drive number
-    LinearToSegOffset [bp + 12], ds, esi, si
-
+    mov dl, [BIOSDiskExtendedGetDriveParams.drive]
+    LinearToSegOffset [BIOSDiskExtendedGetDriveParams.buffer], ds, esi, si
     stc
     int 13h
-
     mov eax, 1
     sbb eax, 0
-
+    mov [BIOSDiskExtendedGetDriveParams.result], eax
     pop esi
     pop ds
-
-    push eax
-
+    
     x86_EnterProtectedMode
-
     [bits 32]
-
-    pop eax
-
+    
+    mov eax, [BIOSDiskExtendedGetDriveParams.result]
     mov esp, ebp
     pop ebp
     ret
 
-
-
 global BIOSDiskGetDriveParams
 BIOSDiskGetDriveParams:
     [bits 32]
-
-    ; make new call frame
-    push ebp             ; save old call frame
-    mov ebp, esp         ; initialize new call frame
-
+    push ebp
+    mov ebp, esp
+    
+    ; Save parameters
+    mov al, [ebp + 8]
+    mov [BIOSDiskGetDriveParams.drive], al
+    mov eax, [ebp + 12]
+    mov [BIOSDiskGetDriveParams.driveType], eax
+    mov eax, [ebp + 16]
+    mov [BIOSDiskGetDriveParams.cylinders], eax
+    mov eax, [ebp + 20]
+    mov [BIOSDiskGetDriveParams.sectors], eax
+    mov eax, [ebp + 24]
+    mov [BIOSDiskGetDriveParams.heads], eax
+    
     x86_EnterRealMode
-
     [bits 16]
-
-    ; save regs
+    
     push es
     push bx
     push esi
     push di
-
-    ; call int13h
-    mov dl, [bp + 8]    ; dl - disk drive
+    
+    mov dl, [BIOSDiskGetDriveParams.drive]
     mov ah, 08h
-    mov di, 0           ; es:di - 0000:0000
+    mov di, 0
     mov es, di
     stc
     int 13h
-
-    ; out params
+    
     mov eax, 1
     sbb eax, 0
-
-    ; drive type from bl
-    LinearToSegOffset [bp + 12], es, esi, si
+    mov [BIOSDiskGetDriveParams.result], eax
+    
+    ; Drive type
+    LinearToSegOffset [BIOSDiskGetDriveParams.driveType], es, esi, si
     mov [es:si], bl
-
-    ; cylinders
-    mov bl, ch          ; cylinders - lower bits in ch
-    mov bh, cl          ; cylinders - upper bits in cl (6-7)
+    
+    ; Cylinders
+    mov bl, ch
+    mov bh, cl
     shr bh, 6
     inc bx
-
-    LinearToSegOffset [bp + 16], es, esi, si
+    LinearToSegOffset [BIOSDiskGetDriveParams.cylinders], es, esi, si
     mov [es:si], bx
-
-    ; sectors
-    xor ch, ch          ; sectors - lower 5 bits in cl
-    and cl, 3Fh
     
-    LinearToSegOffset [bp + 20], es, esi, si
+    ; Sectors
+    xor ch, ch
+    and cl, 3Fh
+    LinearToSegOffset [BIOSDiskGetDriveParams.sectors], es, esi, si
     mov [es:si], cx
-
-    ; heads
-    mov cl, dh          ; heads - dh
+    
+    ; Heads
+    mov cl, dh
     inc cx
-
-    LinearToSegOffset [bp + 24], es, esi, si
+    LinearToSegOffset [BIOSDiskGetDriveParams.heads], es, esi, si
     mov [es:si], cx
-
-    ; restore regs
+    
     pop di
     pop esi
     pop bx
     pop es
-
-    ; return
-
-    push eax
-
+    
     x86_EnterProtectedMode
-
     [bits 32]
-
-    pop eax
-
-    ; restore old call frame
+    
+    mov eax, [BIOSDiskGetDriveParams.result]
     mov esp, ebp
     pop ebp
     ret
@@ -212,83 +233,83 @@ BIOSDiskReset:
     [bits 32]
     push ebp
     mov ebp, esp
-
+    
+    mov al, [ebp + 8]
+    mov [BIOSDiskReset.drive], al
+    
     x86_EnterRealMode
-
     [bits 16]
-
+    
     mov ah, 0
-    mov dl, [bp + 8]
+    mov dl, [BIOSDiskReset.drive]
     stc
     int 13h
-
     mov ax, 1
     sbb ax, 0
-
-    push eax
-
+    movzx eax, ax
+    mov [BIOSDiskReset.result], eax
+    
     x86_EnterProtectedMode
-
     [bits 32]
-
-    pop eax
-
+    
+    mov eax, [BIOSDiskReset.result]
     mov esp, ebp
     pop ebp
     ret
-
-
 
 global BIOSDiskRead
 BIOSDiskRead:
     [bits 32]
-
     push ebp
     mov ebp, esp
     
+    ; Save all parameters
+    mov al, [ebp + 8]
+    mov [BIOSDiskRead.drive], al
+    mov al, [ebp + 12]
+    mov [BIOSDiskRead.cylinder], al
+    mov al, [ebp + 16]
+    mov [BIOSDiskRead.sector], al
+    mov al, [ebp + 20]
+    mov [BIOSDiskRead.head], al
+    mov al, [ebp + 24]
+    mov [BIOSDiskRead.count], al
+    mov eax, [ebp + 28]
+    mov [BIOSDiskRead.buffer], eax
+    
     x86_EnterRealMode
-
     [bits 16]
-
+    
     push ebx
     push es
-
-    mov dl, [bp + 8]
-
-    mov ch, [bp + 12]
-    mov cl, [bp + 13]
+    
+    mov dl, [BIOSDiskRead.drive]
+    mov ch, [BIOSDiskRead.cylinder]
+    mov cl, [BIOSDiskRead.sector]
     shl cl, 6
-
-    mov al, [bp + 16]
+    mov al, [BIOSDiskRead.sector]
     and al, 3Fh
     or cl, al
+    mov dh, [BIOSDiskRead.head]
+    mov al, [BIOSDiskRead.count]
     
-    mov dh, [bp + 20]
-
-    mov al, [bp + 24]
-
-    LinearToSegOffset [bp + 28], es, ebx, bx
-
+    LinearToSegOffset [BIOSDiskRead.buffer], es, ebx, bx
     mov ah, 02h
     stc
     int 13h
-
     mov ax, 1
     sbb ax, 0
+    movzx eax, ax
+    mov [BIOSDiskRead.result], eax
     
     pop es
     pop ebx
-
-    push eax
-
+    
     x86_EnterProtectedMode
-
     [bits 32]
-
-    pop eax
-
+    
+    mov eax, [BIOSDiskRead.result]
     mov esp, ebp
     pop ebp
     ret
-
 

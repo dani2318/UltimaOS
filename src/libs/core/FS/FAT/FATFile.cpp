@@ -19,17 +19,16 @@ FATFile::FATFile()
 {
 }
 
-bool FATFile::Open(FATFileSystem* fs, uint32_t firstCluster, const char* name, uint32_t size, bool isDirectory)
+bool FATFile::Open(FATFileSystem* filesystem, uint32_t firstCluster, const char* name, uint32_t size, bool isDirectory)
 {
     isRootDirectory = false;
     position = 0;
-    size = size;
-    isDirectory = isDirectory;
+    this->size = size;
+    this->isDirectory = isDirectory;
     FirstCluster = firstCluster;
     CurrentCluster = FirstCluster;
     CurrentClusterIndex = 0;
     CurrentSectorInCluster = 0;
-    this->fs = fs;
 
     if (!fs->ReadSectorFromCluster(CurrentCluster, CurrentSectorInCluster, Buffer))
     {
@@ -41,7 +40,7 @@ bool FATFile::Open(FATFileSystem* fs, uint32_t firstCluster, const char* name, u
     return true;
 }
 
-bool FATFile::OpenFat1216RootDirectory(FATFileSystem* fs, uint32_t rootDirLba, uint32_t rootDirSize)
+bool FATFile::OpenFat1216RootDirectory(FATFileSystem* filesystem, uint32_t rootDirLba, uint32_t rootDirSize)
 {
     isRootDirectory = true;
     position = 0;
@@ -50,7 +49,6 @@ bool FATFile::OpenFat1216RootDirectory(FATFileSystem* fs, uint32_t rootDirLba, u
     CurrentCluster = FirstCluster;
     CurrentClusterIndex = 0;
     CurrentSectorInCluster = 0;
-    this->fs = fs;
 
     if (!fs->ReadSector(rootDirLba, Buffer))
     {
@@ -70,7 +68,6 @@ bool FATFile::ReadFileEntry(FATDirectoryEntry* dirEntry)
 {
     return Read(reinterpret_cast<uint8_t*>(dirEntry), sizeof(FATDirectoryEntry)) == sizeof(FATDirectoryEntry);
 }
-
 size_t FATFile::Read(uint8_t* data, size_t byteCount)
 {
     uint8_t* originalData = data;
@@ -135,6 +132,8 @@ size_t FATFile::Read(uint8_t* data, size_t byteCount)
     return data - originalData;
 }
 
+
+
 size_t FATFile::Write(const uint8_t* data, size_t size)
 {
     // not supported (yet)
@@ -153,12 +152,12 @@ bool FATFile::Seek(SeekPos pos, int rel)
         if (rel < 0 && position < -rel)
             position = 0;
 
-        position = min(Size(), static_cast<uint32_t>(position + rel));
-        
+        position = min(size, static_cast<uint32_t>(position + rel));
+        break;
     case SeekPos::End:
-        if (rel < 0 && Size() < -rel)
+        if (rel < 0 && size < -rel)
             position = 0;
-        position = min(Size(), static_cast<uint32_t>(Size() + rel));
+        position = min(size, static_cast<uint32_t>(Size() + rel));
 
         break;
     }

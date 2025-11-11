@@ -53,37 +53,41 @@ BIOSDisk::BIOSDisk(uint8_t deviceID)
       size(0)
 {
 }
+
 bool BIOSDisk::Initialize()
 {
+    Debug::Info("Stage2", "Checking extensions...");
     haveExtensions = BIOSDiskExtensionPresent(id);
-
+    
     if (haveExtensions)
     {
+        Debug::Info("Stage2", "Extensions present, getting params...");
         ExtendedDriveParameters parameters;
         parameters.ParametersSize = sizeof(ExtendedDriveParameters);
         if (!BIOSDiskExtendedGetDriveParams(id, &parameters))
         {
+            Debug::Info("Stage2", "Failed to get extended params");
             return false;
         }
-
+        Debug::Info("Stage2", "Got extended params");
         Assert(parameters.BytesPerSectors == SECTOR_SIZE);
-
         this->size = SECTOR_SIZE * parameters.Sectors;
-        
     }
     else
     {
+        Debug::Info("Stage2", "No extensions, using legacy method...");
         uint8_t driveType;
-
         if (!BIOSDiskGetDriveParams(id, &driveType, &cylinders, &sectors, &heads))
         {
+            Debug::Info("Stage2", "Failed to get legacy params");
             return false;
         }
+        Debug::Info("Stage2", "Got legacy params");
     }
-
+    
+    Debug::Info("Stage2", "Initialize complete!");
     return true;
 }
-
 size_t BIOSDisk::Write(const uint8_t *data, size_t size)
 {
     return 0;

@@ -19,9 +19,17 @@ bool FATFileSystem::Initialize(BlockDevice* device)
 {
     m_Device = device;
 
+    // NON provare ancora a leggere BS.BootSectorBytes
+    // Prima testa se m_Data è valido
+    if (m_Data == nullptr) {
+        Debug::Error(LOG_MODULE, "m_Data is NULL!\n");
+        return false;
+    }
+
+
     // Trying to read the bootsector.
     if(!ReadBootSector()){
-        Debug::Error(module_name,"Failed to read bootsector! ");
+        Debug::Error(LOG_MODULE,"Failed to read bootsector! ");
         return false;
     }
     DetectFatType();
@@ -88,6 +96,7 @@ File* FATFileSystem::RootDirectory()
 
 bool FATFileSystem::ReadSector(uint32_t lba, uint8_t* buffer, size_t count)
 {
+
     m_Device->Seek(SeekPos::Set, lba * SectorSize);
     return (m_Device->Read(buffer, count * SectorSize) == count * SectorSize);
 }
