@@ -161,8 +161,8 @@ variantDirStage1 = variantDir + '/stage1_{0}'.format(TARGET_ENVIRONMENT['imageFS
 
 SConscript('src/libs/core/SConscript', variant_dir=variantDir + '/libscore', duplicate=0)
 
-SConscript('src/boot/stage1/SConscript', variant_dir=variantDirStage1, duplicate=0)
-SConscript('src/boot/stage2/SConscript', variant_dir=variantDir + '/stage2', duplicate=0)
+SConscript('src/boot/loader/SConscript', variant_dir=variantDirStage1, duplicate=0)
+SConscript('src/boot/bootloader/SConscript', variant_dir=variantDir + '/stage2', duplicate=0)
 SConscript('src/kernel/SConscript', variant_dir=variantDir + '/kernel', duplicate=0)
 SConscript('image/SConscript', variant_dir=variantDir, duplicate=0)
 

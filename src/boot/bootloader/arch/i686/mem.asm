@@ -1,4 +1,4 @@
-%include "src/boot/stage2/arch/i686/ProtectedMode.inc"
+%include "src/boot/bootloader/arch/i686/ProtectedMode.inc"
 
 section .data
 ; Global variables for E820GetNextBlock

@@ -206,4 +206,3 @@ bool TextDevice::FormatBuffer(const char* msg, const void* buffer, size_t count)
 
     return ok;
 }
-

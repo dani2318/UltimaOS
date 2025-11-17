@@ -1,7 +1,41 @@
-// Folder-specific settings
-//
-// For a full list of overridable settings, and general information on folder-specific settings,
-// see the documentation: https://zed.dev/docs/configuring-zed#settings-files
 {
-
+  "lsp": {
+    "clangd": {
+      "binary": {
+        "path": "clangd"
+      },
+      "initialization_options": {
+        "compilationDatabasePath": "${workspaceFolder}",
+        "fallbackFlags": [
+          "-std=c99",
+          "-g",
+          "-ffreestanding",
+          "-nostdlib",
+          "-fbuiltin",
+          "-I${workspaceFolder}",
+          "-I${workspaceFolder}/src",
+          "-I${workspaceFolder}/src/kernel",
+          "-I${workspaceFolder}/toolchain/i686-elf/lib/gcc/i686-elf/15.1.0/include",
+          "--target=i686-elf",
+          "--sysroot=${workspaceFolder}/toolchain/i686-elf"
+        ]
+      }
+    }
+  },
+  "languages": {
+    "C": {
+      "format_on_save": "off",
+      "preferred_line_length": 80,
+      "tab_size": 4
+    },
+    "C++": {
+      "format_on_save": "off",
+      "preferred_line_length": 80,
+      "tab_size": 4
+    }
+  },
+  "file_types": {
+    "C": ["def", "inc", "in", "x"],
+    "C++": ["C"]
+  }
 }
