@@ -33,9 +33,8 @@ size_t RangeBlockDevice::Read(uint8_t* data, size_t size)
     // m_Position is the relative byte offset (e.g., 0)
     size_t physicalOffset = (m_RangeBegin * 512) + m_Position; 
     
-    // 3. CRITICAL: SEEK the underlying device to the correct physical byte offset
     if (!m_Device->Seek(SeekPos::Set, physicalOffset)) {
-        // Log failure if seek fails
+        Debug::Error("RangeBlockDevice","RangeBlockDevice seek failed when reading at 0x%x",physicalOffset);
         return 0;
     }
 
@@ -65,18 +64,40 @@ bool RangeBlockDevice::Seek(SeekPos pos, int rel)
     switch (pos)
     {
     case SeekPos::Set:{
-        Debug::Info("RangeBlockDevice", "m_RangeBegin + rel = %d", m_RangeBegin + rel);
-        m_Position = rel;
-        return m_Device->Seek(SeekPos::Set, m_RangeBegin + rel);
+        // 'rel' is the relative byte offset within the partition passed by FATFileSystem
+        size_t newPosition = (size_t)rel; // Assuming FATFileSystem passed a byte offset
+        
+        // Update internal position
+        m_Position = newPosition; 
+        
+        // Calculate and seek the absolute byte offset
+        size_t absoluteOffset = (m_RangeBegin * 512) + newPosition;
+        
+        return m_Device->Seek(SeekPos::Set, absoluteOffset);
     }
+
     case SeekPos::Current:{
-        Debug::Info("RangeBlockDevice", "rel = %d", rel);
-        return m_Device->Seek(SeekPos::Current, rel);
+        // Calculate the new relative position: m_Position + rel
+        size_t newPosition = m_Position + rel;
+        
+        // Update internal position
+        m_Position = newPosition; 
+        
+        // Calculate the absolute physical byte offset
+        size_t absoluteOffset = (m_RangeBegin * 512) + newPosition;
+        
+        return m_Device->Seek(SeekPos::Set, absoluteOffset);
     }
 
     case SeekPos::End:{
-        Debug::Info("RangeBlockDevice", "m_RangeBegin + m_RangeSize = %d", m_RangeBegin + m_RangeSize);
-        return m_Device->Seek(SeekPos::Set, m_RangeBegin + m_RangeSize);
+        // 1. Calculate the LBA just past the end of the partition.
+        size_t endLba = m_RangeBegin + m_RangeSize;
+        
+        // 2. Update the internal position to the end of the partition size (in bytes).
+        m_Position = m_RangeSize * 512;
+        
+        // 3. Seek the underlying device to the end LBA, converted to a byte offset.
+        return m_Device->Seek(SeekPos::Set, endLba * 512);
     }
 
     default:
