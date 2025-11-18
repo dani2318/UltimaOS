@@ -17,4 +17,5 @@ private:
     BlockDevice* m_Device;
     size_t m_RangeBegin;
     size_t m_RangeSize;
+    size_t m_Position;
 };

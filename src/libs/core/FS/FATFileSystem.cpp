@@ -1,6 +1,6 @@
 #include "FATFileSystem.hpp"
-#include "FAT/FATHeaders.hpp"
-#include "FAT/FATFileEntry.hpp"
+#include <core/FS/FAT/FATHeaders.hpp>
+#include <core/FS/FAT/FATFileEntry.hpp>
 #include <Debug.hpp>
 
 #define LOG_MODULE "FAT"
@@ -19,27 +19,30 @@ bool FATFileSystem::Initialize(BlockDevice* device)
 {
     m_Device = device;
 
-    // Trying to read the bootsector.
-    if(!ReadBootSector()){
-        Debug::Critical(LOG_MODULE,"Failed to read bootsector! ");
+    if (!ReadBootSector())
+    {
+        Debug::Error(LOG_MODULE, "FAT: read boot sector failed");
         return false;
     }
-    DetectFatType();
 
     m_Data->FatCachePosition = 0xFFFFFFFF;
 
-    if (m_FatType == FAT32) {          // fat32
+    m_TotalSectors = m_Data->BS.BootSector.TotalSectors;
+    if (m_TotalSectors == 0) {          // fat32
         m_TotalSectors = m_Data->BS.BootSector.LargeSectorCount;
+    }
+
+    bool isFat32 = false;
+    m_SectorsPerFat = m_Data->BS.BootSector.SectorsPerFat;
+    if (m_SectorsPerFat == 0) {         // fat32
+        isFat32 = true;
         m_SectorsPerFat = m_Data->BS.BootSector.EBR32.SectorsPerFat;
-    }else{
-        m_TotalSectors = m_Data->BS.BootSector.TotalSectors;
-        m_SectorsPerFat = m_Data->BS.BootSector.SectorsPerFat;
     }
     
     // open root directory file
     uint32_t rootDirLba;
     uint32_t rootDirSize;
-    if (m_FatType == FAT32) {
+    if (isFat32) {
         m_DataSectionLba = m_Data->BS.BootSector.ReservedSectors + m_SectorsPerFat * m_Data->BS.BootSector.FatCount;
         if (!m_Data->RootDirectory.Open(this, m_Data->BS.BootSector.EBR32.RootdirCluster, "", 0, true))
             return false;
@@ -54,6 +57,7 @@ bool FATFileSystem::Initialize(BlockDevice* device)
             return false;
     }
 
+    DetectFatType();
 
     m_Data->LFNCount = 0;
 
@@ -88,18 +92,9 @@ File* FATFileSystem::RootDirectory()
 
 bool FATFileSystem::ReadSector(uint32_t lba, uint8_t* buffer, size_t count)
 {
-    Debug::Info(LOG_MODULE, "lba = %u, count = %lu", lba, count);
-
-    if (!m_Device->Seek(SeekPos::Set, lba))
-        return false;
-
-    // read count sectors
-    size_t sectorsRead = m_Device->Read(buffer, count);
-    bool hasReadCorrectly = (sectorsRead == count);
-    Debug::Info(LOG_MODULE, "hasReadCorrectly? %d", hasReadCorrectly);
-    return hasReadCorrectly;
+    m_Device->Seek(SeekPos::Set, lba * SectorSize);
+    return (m_Device->Read(buffer, count * SectorSize) == count * SectorSize);
 }
-
 
 bool FATFileSystem::ReadSectorFromCluster(uint32_t cluster, uint32_t sectorOffset, uint8_t* buffer)
 {
@@ -108,10 +103,7 @@ bool FATFileSystem::ReadSectorFromCluster(uint32_t cluster, uint32_t sectorOffse
 
 bool FATFileSystem::ReadBootSector()
 {
-    Debug::Info(LOG_MODULE, "Reading boot sector...");
-    bool hasRead = ReadSector(0, reinterpret_cast<uint8_t*>(&m_Data->BS.BootSector), 1);
-    Debug::Info(LOG_MODULE, "hasReadBootSector? %d", hasRead);
-    return hasRead;
+    return ReadSector(0, m_Data->BS.BootSectorBytes);
 }
 
 uint32_t FATFileSystem::ClusterToLba(uint32_t cluster)
