@@ -21,6 +21,9 @@ FATFile::FATFile()
 
 bool FATFile::Open(FATFileSystem* filesystem, uint32_t firstCluster, const char* name, uint32_t size, bool isDirectory)
 {
+
+    Debug::Info(LOG_MODULE, " Regular Open -> first cluster: %lu name: %s size: %lu isDirectory: %d", firstCluster, name, size, isDirectory);
+
     isRootDirectory = false;
     position = 0;
     this->size = size;
