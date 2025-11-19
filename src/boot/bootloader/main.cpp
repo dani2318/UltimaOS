@@ -86,7 +86,7 @@ EXPORT void ASMCALL Start(uint16_t bootDrive, uint32_t partition){
     }
 
     Debug::Info("stage2", "FAT filesystem load success!");
-    File* kernel = fs.Open("kernel.bin", FileOpenMode::Read);
+    File* kernel = fs.Open("NeoOS/System/kernel.bin", FileOpenMode::Read);
 
     Debug::Info("stage2", "OK!");
 

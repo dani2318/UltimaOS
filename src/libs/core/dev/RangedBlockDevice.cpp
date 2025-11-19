@@ -38,9 +38,18 @@ size_t RangeBlockDevice::Read(uint8_t* data, size_t size)
         return 0;
     }
 
+
+
     // 4. READ the data from the underlying device
+    Debug::Info("RangeBlockDevice", "Read: pos=%d, size=%d, reading from device...", m_Position, size);
     size_t bytesRead = m_Device->Read(data, bytesToRead);
-    
+    Debug::Info("RangeBlockDevice", "Read: bytesRead=%d", bytesRead);
+
+    if (bytesRead > size) {
+        Debug::Warn("RangeBlockDevice", "Device returned %d bytes but only %d requested!", bytesRead, size);
+        bytesRead = size;
+    }
+
     // 5. UPDATE internal relative position
     m_Position += bytesRead;
 
@@ -64,14 +73,13 @@ bool RangeBlockDevice::Seek(SeekPos pos, int rel)
     switch (pos)
     {
     case SeekPos::Set:{
-        // 'rel' is the relative byte offset within the partition passed by FATFileSystem
-        size_t newPosition = (size_t)rel; // Assuming FATFileSystem passed a byte offset
-        
-        // Update internal position
+        size_t newPosition = (size_t)rel;
         m_Position = newPosition; 
-        
-        // Calculate and seek the absolute byte offset
         size_t absoluteOffset = (m_RangeBegin * 512) + newPosition;
+        
+        Debug::Info("RangeBlockDevice", 
+            "Seeking: rel=%d, newPos=%d, rangeBegin=%d, absOffset=%d", 
+            rel, newPosition, m_RangeBegin, absoluteOffset);
         
         return m_Device->Seek(SeekPos::Set, absoluteOffset);
     }

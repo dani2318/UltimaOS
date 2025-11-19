@@ -1,6 +1,7 @@
 #include "FileSystem.hpp"
 #include <core/cpp/String.hpp>
 #include <core/cpp/Memory.hpp>
+#include <core/Debug.hpp>
 
 File* FileSystem::Open(const char* path, FileOpenMode mode)
 {
@@ -31,6 +32,7 @@ File* FileSystem::Open(const char* path, FileOpenMode mode)
             path += len;
             isLast = true;
         }
+
 
         FileEntry* nextEntry = FindFile(root, name);
         if (nextEntry)
