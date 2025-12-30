@@ -1,16 +1,33 @@
 ENTRY(start)
-OUTPUT_FORMAT("elf32-i386")
-phys = 0x00100000;
+OUTPUT_FORMAT("elf64-x86-64")
+
+/* UEFI kernels are often loaded at higher addresses by the firmware */
+/* But if your bootloader specifically moves the kernel to 1MB, this is fine */
 
 SECTIONS
 {
-    . = phys;
+    . = 0x2000000;
+    _kernel_start = .;
+    .text : ALIGN(4K) {
+        *(.text.start)
+        *(.text .text.*)
+    }
 
-    .entry              : { __entry_start = .;      *(.entry)   }
-    .text               : { __text_start = .;       *(.text)    }
-    .data               : { __data_start = .;       *(.data)    }
-    .rodata             : { __rodata_start = .;     *(.rodata)  }
-    .bss                : { __bss_start = .;        *(.bss)     }
-    
-    __end = .;
+    .rodata : {
+        *(.rodata .rodata.*)
+        __ctors_start = .;
+        *(.init_array)
+        *(.ctors)
+        __ctors_end = .;
+    }
+
+    .data : ALIGN(4K) {
+        *(.data .data.*)
+    }
+
+    .bss : ALIGN(4K) {
+        *(COMMON)
+        *(.bss .bss.*)
+    }
+    _kernel_end = .;
 }

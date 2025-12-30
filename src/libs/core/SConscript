@@ -1,24 +1,54 @@
 import os
-
 from SCons.Environment import Environment
-from scripts.build_scripts.utility import GlobRecursive, FindIndex, IsFileName
-
+from scripts.build_scripts.utility import GlobRecursive
 
 Import('TARGET_ENVIRONMENT')
 TARGET_ENVIRONMENT: Environment
 
 env = TARGET_ENVIRONMENT.Clone()
+
+# Detect if we are in a UEFI context
+is_uefi = '-target' in env.get('CCFLAGS', [])
+
+# Update paths and flags
 env.Append(
-    CPPPATH = [ env.Dir('.').srcnode(),  env['ROOTDIR'].Dir('src/libs').srcnode()],
-    ASFLAGS = [ '-I', env.Dir('.').srcnode(), '-f', 'elf' ]
+    CPPPATH = [ env.Dir('.').srcnode(), env['ROOTDIR'].Dir('src/libs').srcnode()],
+    ASFLAGS = [ '-I', env.Dir('.').srcnode()]
 )
 
+# Set the directory for objects to prevent ELF/PE mixing
+variant_dir = 'uefi_objs' if is_uefi else 'kernel_objs'
+
+# Collect all sources
 sources = GlobRecursive(env, '*.c') + \
           GlobRecursive(env, '*.cpp') + \
           GlobRecursive(env, '*.asm')
 
-objects = env.Object(sources)
+objects = []
+for s in sources:
+    # 1. Skip if s is an empty list
+    if isinstance(s, list) and len(s) == 0:
+        continue
+        
+    # 2. Extract the node safely
+    node = s[0] if isinstance(s, list) else s
+    
+    # 3. Ensure we actually have a node with a name attribute
+    if not hasattr(node, 'name'):
+        continue
 
-libcore = env.StaticLibrary('libcore.o',objects)
+    # Generate a clean object filename
+    obj_name = os.path.splitext(str(node.name))[0] + '.o'
+    obj_target = os.path.join(variant_dir, obj_name)
+    
+    objects.append(env.Object(target=obj_target, source=node))
 
-Export('libcore')
+# 4. Only build the library if we actually found objects
+if objects:
+    lib_name = 'libcore_uefi.a' if is_uefi else 'libcore.o'
+    libcore = env.StaticLibrary(lib_name, objects)
+    Export('libcore')
+else:
+    print(f"--- Warning: No source files found in {env.Dir('.').path}")
+    # Export a dummy value to prevent SConstruct from crashing on Import
+    Export(libcore=None)

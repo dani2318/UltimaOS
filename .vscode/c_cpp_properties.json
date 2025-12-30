@@ -5,7 +5,9 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/toolchain/i686-elf/lib/gcc/i686-elf/15.1.0/include/*",
-                "${workspaceFolder}/src/kernel"
+                "${workspaceFolder}/src/kernel",
+                "/usr/include/efi",
+                "/usr/include/efi/x86_64"
             ],
             "defines": [],
             "compilerPath": "${workspaceFolder}/toolchain/i686-elf/bin/i686-elf-g++",
