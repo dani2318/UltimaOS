@@ -1,6 +1,6 @@
 #include "FATFileSystem.hpp"
-#include <core/FS/FAT/FATHeaders.hpp>
-#include <core/FS/FAT/FATFileEntry.hpp>
+#include <FS/FAT/FATHeaders.hpp>
+#include <FS/FAT/FATFileEntry.hpp>
 #include <Debug.hpp>
 
 #define LOG_MODULE "FAT"
@@ -92,7 +92,6 @@ File* FATFileSystem::RootDirectory()
 
 bool FATFileSystem::ReadSector(uint32_t lba, uint8_t* buffer, size_t count)
 {
-    Debug::Info(LOG_MODULE, "Reading at lba: 0x%x count of %d", lba, count);
     m_Device->Seek(SeekPos::Set, lba * SectorSize);
     return (m_Device->Read(buffer, count * SectorSize) == count * SectorSize);
 }

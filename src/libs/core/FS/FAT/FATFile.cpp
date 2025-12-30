@@ -22,7 +22,7 @@ FATFile::FATFile()
 bool FATFile::Open(FATFileSystem* filesystem, uint32_t firstCluster, const char* name, uint32_t size, bool isDirectory)
 {
 
-    Debug::Info(LOG_MODULE, " Regular Open -> first cluster: %lu name: %s size: %lu isDirectory: %d", firstCluster, name, size, isDirectory);
+    Debug::Info(LOG_MODULE, "Regular Open -> first cluster: %lu name: %s size: %lu isDirectory: %d", firstCluster, name, size, isDirectory);
 
     isRootDirectory = false;
     position = 0;
@@ -74,6 +74,8 @@ bool FATFile::ReadFileEntry(FATDirectoryEntry* dirEntry)
 size_t FATFile::Read(uint8_t* data, size_t byteCount)
 {
     uint8_t* originalData = data;
+
+    Debug::Info(LOG_MODULE, "isDirectory? %d",isDirectory);
 
     // don't read past the end of the file
     if (!isDirectory || (isDirectory && size != 0))
@@ -148,22 +150,25 @@ bool FATFile::Seek(SeekPos pos, int rel)
     switch (pos)
     {
     case SeekPos::Set:
+        Debug::Info("FATFile", "Reading at pos SeekPos::Set with rel at %d", rel);
         position = static_cast<uint32_t>(max(0, rel));
         break;
     
     case SeekPos::Current:
         if (rel < 0 && position < -rel)
             position = 0;
-
+        Debug::Info("FATFile", "Reading at pos SeekPos::Current with rel at %d", rel);
         position = min(size, static_cast<uint32_t>(position + rel));
         break;
     case SeekPos::End:
         if (rel < 0 && size < -rel)
             position = 0;
+        Debug::Info("FATFile", "Reading at pos SeekPos::End with rel at %d", rel);
         position = min(size, static_cast<uint32_t>(Size() + rel));
 
         break;
     }
+    Debug::Info("FATFile", "Current position %lu", position);
 
     UpdateCurrentCluster();
     return true;
@@ -187,6 +192,7 @@ bool FATFile::UpdateCurrentCluster()
     while (desiredCluster > CurrentClusterIndex) 
     {
         CurrentCluster = fs->GetNextCluster(CurrentCluster);
+        Debug::Info("FATFile", "Reading cluster %u", CurrentCluster);
         ++CurrentClusterIndex;
     }
 

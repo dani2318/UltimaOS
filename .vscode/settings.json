@@ -79,6 +79,9 @@
         "pr82985.C": "cpp",
         "devirt-33.C": "cpp",
         "template26.C": "cpp",
-        "coroutine": "c"
+        "coroutine": "c",
+        "barrier": "cpp",
+        "latch": "cpp",
+        "semaphore": "cpp"
     }
 }
