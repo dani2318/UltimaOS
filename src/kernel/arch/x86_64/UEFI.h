@@ -17,8 +17,8 @@ typedef struct {
     unsigned int mmap_size;
     unsigned int descriptor_size; // Added: kernel needs this to parse mmap
     void* font_address;
+    Framebuffer framebuffer;     // Added: Graphics info
     uint64_t kernel_size;
-    Framebuffer* framebuffer;     // Added: Graphics info
 } BootInfo;
 
 // In your kernel main.c or acpi.h

@@ -17,7 +17,7 @@ typedef struct {
     unsigned int mmap_size;
     unsigned int descriptor_size;
     void* font_address;
-    Framebuffer* framebuffer;
+    Framebuffer framebuffer;
 } BootInfo;
 
 // Define this globally or as static so it doesn't live on the stack
@@ -139,7 +139,7 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
     // --- 6. PREPARE FINAL HANDOVER DATA (MUST BE AFTER LOOP) ---
     final_boot_info.kernel_entry    = (void*)(uintptr_t)kernel_buffer;
     final_boot_info.rsdt_address    = rsdt_ptr;
-    final_boot_info.framebuffer     = fb;
+    final_boot_info.framebuffer     = *fb;
     final_boot_info.mmap_address    = (void*)mmap;
     final_boot_info.mmap_size       = (unsigned int)mmap_size;
     final_boot_info.descriptor_size = (unsigned int)descriptor_size;

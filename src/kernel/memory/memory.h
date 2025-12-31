@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-
 typedef struct {
     uint32_t Type;
     uint32_t Pad;
@@ -33,31 +32,44 @@ enum MemoryType {
 
 #ifndef ALLOC_DEF
 #define ALLOC_DEF
-class BumpAllocator {
-public:
+
+/* =========================
+   BUMP ALLOCATOR
+   ========================= */
+
+typedef struct {
     uint64_t next_address;
     uint64_t limit;
+} BumpAllocator;
 
-    void init(uint64_t start, uint64_t size) {
-        next_address = start;
-        limit = start + size;
+/* Initialize allocator */
+static inline void BumpAllocator_Init(
+    BumpAllocator* alloc,
+    uint64_t start,
+    uint64_t size
+) {
+    alloc->next_address = start;
+    alloc->limit = start + size;
+}
+
+/* Allocate memory */
+static inline void* BumpAllocator_Alloc(
+    BumpAllocator* alloc,
+    size_t size
+) {
+    /* Align to 8 bytes */
+    uint64_t aligned_size = (size + 7) & ~((uint64_t)7);
+
+    if (alloc->next_address + aligned_size > alloc->limit) {
+        return NULL; /* Out of memory */
     }
 
-    void* alloc(size_t size) {
-        // Align to 8 bytes for performance and CPU requirements
-        uint64_t aligned_size = (size + 7) & ~7;
-        
-        if (next_address + aligned_size > limit) {
-            return nullptr; // Out of memory!
-        }
+    void* ptr = (void*)alloc->next_address;
+    alloc->next_address += aligned_size;
+    return ptr;
+}
 
-        void* ptr = (void*)next_address;
-        next_address += aligned_size;
-        return ptr;
-    }
-};
 
-extern BumpAllocator g_allocator;
 #endif
 
 static void * memcpy(void * dst, const void * src, uint16_t num){
