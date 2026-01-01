@@ -39,15 +39,14 @@ EXPORT void ASMCALL Start(uint16_t bootDrive, uint32_t partition){
     }
     Debug::Info("stage2", "Disk OK!");
 
-    // Handle partitioned disks
     BlockDevice* part;
     RangeBlockDevice partRange;
     uint32_t partitionLBA;
     if (bootDrive < 0x80) {
         part = &disk;
     } else {
-        MBREntry* entry = to_linear<MBREntry*>(partition); // if you really need the MBR structure
-        partitionLBA = entry->LbaStart;   // partition = LBA start
+        MBREntry* entry = to_linear<MBREntry*>(partition);
+        partitionLBA = entry->LbaStart;
         Debug::Info("stage2", "to_linear<uint32_t>(partition): 0x%x", to_linear<uint32_t>(partition));
         Debug::Info("stage2", "================ MBREntry info ================");
         Debug::Info("stage2", "====== Attributes: %d", entry->Attributes);
@@ -77,7 +76,6 @@ EXPORT void ASMCALL Start(uint16_t bootDrive, uint32_t partition){
 
     Debug::Info("stage2", "Partition OK!");
 
-    // Read partition
     FATFileSystem fs;
     if (!fs.Initialize(part))
     {

@@ -9,7 +9,7 @@ env = TARGET_ENVIRONMENT.Clone()
 
 # 1. Architecture-aware flags
 if env['arch'] == 'x86_64':
-    as_format = 'win64'
+    as_format = 'elf64'
     output_name = 'kernel.efi'
 else:
     # Fallback for i686 (Legacy/Multiboot)

@@ -3,7 +3,6 @@ from scripts.build_scripts.utility import GlobRecursive
 
 Import('HOST_ENVIRONMENT')
 env = HOST_ENVIRONMENT.Clone()
-
 # 1. Verification of WSL Paths
 crt0_path = '/usr/lib/crt0-efi-x86_64.o'
 lds_path = '/usr/lib/elf_x86_64_efi.lds'

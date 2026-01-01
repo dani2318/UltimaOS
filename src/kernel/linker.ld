@@ -15,12 +15,14 @@ SECTIONS
 
     .rodata : {
         *(.rodata .rodata.*)
-        __ctors_start = .;
-        *(.init_array)
-        *(.ctors)
-        __ctors_end = .;
+        
+        . = ALIGN(8);
+        __init_array_start = .;  /* Two underscores */
+        KEEP(*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
+        KEEP(*(.init_array .ctors))
+        __init_array_end = .;    /* Two underscores */
     }
-
+    
     .data : ALIGN(4K) {
         *(.data .data.*)
     }
