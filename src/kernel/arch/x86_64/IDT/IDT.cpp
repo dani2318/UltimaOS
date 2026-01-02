@@ -1,6 +1,5 @@
 #include <arch/x86_64/IDT/IDT.hpp>
 
-
 EXTERNC void isr0();   // defined in assembly
 
 void IDT::Init(void) {

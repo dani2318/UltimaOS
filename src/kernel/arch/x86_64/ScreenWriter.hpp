@@ -35,7 +35,6 @@ class ScreenWriter {
                 pixel_ptr[i] = clear_color;
             }
         }
-
         inline void PrintChar(char c, uint32_t xOff, uint32_t yOff) {
             unsigned char* glyph = (unsigned char*)font + sizeof(PSF1_Header) + ((unsigned char)c * font->charsize);
             for (uint32_t y = 0; y < font->charsize; y++) {
@@ -80,8 +79,6 @@ class ScreenWriter {
                 str++;
             }
         }
-
-        
 
         void PrintHex(uint64_t val) {
             char hex[] = "0123456789ABCDEF";

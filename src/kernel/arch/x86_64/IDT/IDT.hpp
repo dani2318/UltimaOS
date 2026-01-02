@@ -17,7 +17,7 @@ typedef struct  {
     uint64_t base;
 } __attribute__((packed)) IDTPtr;
 
-EXTERNC void lidt(void*);
+extern "C" void lidt(void*);
 
 class IDT {
     public:

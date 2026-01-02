@@ -7,7 +7,7 @@
 #include <arch/x86_64/ScreenWriter.hpp>
 #include <arch/x86_64/panic.hpp>
 #include <arch/x86_64/Paging.hpp>
-#include <arch/x86_64/GDT/GDT.h>
+#include <arch/x86_64/GDT/GDT.hpp>
 #include <arch/x86_64/IDT/IDT.hpp>
 #include <globals.hpp>
 #include <cpp/cppSupport.hpp>
@@ -17,6 +17,7 @@ Serial *g_serialWriter;
 ScreenWriter *g_screenwriter;
 HeapAllocator g_heap;
 IDT *idt;
+GDT* _gdt;
 
 void SwitchPageTable(PageTable *pml4)
 {
@@ -123,7 +124,6 @@ EXTERNC __attribute__((section(".text.start"))) void start(BootInfo *b_info)
 
     uint64_t bitmap_size = (total_mem / 4096 / 8) + 1;
     uint64_t bitmap_pages = (bitmap_size / 4096) + 1;
-
     uint64_t kernel_start = (uint64_t)&_kernel_start;
     uint64_t kernel_end = (uint64_t)&_kernel_end;
     uint64_t kernel_size = kernel_end - kernel_start;
@@ -213,7 +213,22 @@ EXTERNC __attribute__((section(".text.start"))) void start(BootInfo *b_info)
     g_serialWriter->Print("K: Initialization Complete.\n");
     idt->Init();
 
-    GDT_Init();
+    _gdt = new GDT();
+
+    _gdt->Init();
+
+    irq = new IRQ();
+
+    irq->Initialize();
+
+    // // Divide by zero (interrupt 0)
+    // asm volatile ("div %0" :: "r"(0));
+
+    // // Invalid opcode (interrupt 6)
+    // asm volatile (".byte 0x0f, 0x0b");  // UD2 instruction
+
+    // // General protection fault (interrupt 13)
+    // asm volatile ("int $0x80");  // If IDT entry 0x80 isn't set up
 
     while (1)
     {

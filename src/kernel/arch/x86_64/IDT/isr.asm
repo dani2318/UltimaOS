@@ -1,17 +1,16 @@
 bits 64
-
 global isr0
 extern isr_handler
-
 section .text
 
 isr0:
     cli
-    push 0          ; error code (fake)
+    push 0          ; fake error code
     push 0          ; interrupt number
     jmp isr_common
 
 isr_common:
+    ; Save all registers
     push rax
     push rbx
     push rcx
@@ -27,10 +26,13 @@ isr_common:
     push r13
     push r14
     push r15
-
-    mov rdi, rsp    ; first argument (SysV ABI)
+    
+    cld             ; Clear direction flag (SysV ABI requirement)
+    
+    mov rdi, rsp    ; Pass stack pointer as first argument
     call isr_handler
-
+    
+    ; Restore all registers
     pop r15
     pop r14
     pop r13
@@ -46,7 +48,7 @@ isr_common:
     pop rcx
     pop rbx
     pop rax
-
-    add rsp, 16     ; pop int_no + err_code
-    sti
+    
+    add rsp, 16     ; Remove error code and interrupt number
+    ; DON'T use sti here - iretq restores interrupt flag automatically
     iretq

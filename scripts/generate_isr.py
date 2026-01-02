@@ -3,7 +3,7 @@ from pathlib import Path
 
 MAIN_PATH = Path(__file__.replace("generate_isr.py","")).parent.absolute()
 
-PATH = f"{MAIN_PATH}/src/kernel/arch/i686"
+PATH = f"{MAIN_PATH}/src/kernel/arch/x86_64"
 
 ISRS_GEN_C = f"{PATH}/isrs_gen.c"
 ISRS_GEN_ASM = f"{PATH}/isrs_gen.inc"
