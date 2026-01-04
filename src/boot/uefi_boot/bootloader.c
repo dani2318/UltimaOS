@@ -1,10 +1,10 @@
 #include <efi.h>
 #include <efilib.h>
 #include <stdint.h>
-#include <UEFI.h>
+#include <libs/core/UEFI.h>
 
 
-typedef void (*KernelStart)(BootInfo*);
+typedef void (*KernelStart)(BootInfo*, EFI_SYSTEM_TABLE *, EFI_HANDLE*);
 
 static BootInfo final_boot_info;
 
@@ -131,7 +131,7 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
     
     __asm__ volatile ("cli");
     
-    kernel_start(&final_boot_info);
+    kernel_start(&final_boot_info, SystemTable, &ImageHandle);
 
     Print(L"ERROR: Kernel returned control to bootloader!\r\n");
     while(1) {

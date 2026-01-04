@@ -18,7 +18,7 @@ fi
 # 2. Base QEMU Arguments
 # Note: x86_64 is required for UEFI BOOTX64.EFI
 QEMU="qemu-system-x86_64"
-QEMU_ARGS="-cpu qemu64 -m 4G -no-reboot -no-shutdown -serial stdio -monitor telnet:127.0.0.1:1234,server,nowait -bios $OVMF_PATH"
+QEMU_ARGS="-cpu qemu64 -m 4G -serial stdio -d int,guest_errors -D qemu.log -bios $OVMF_PATH"
 
 if [ "$#" -le 1 ]; then
     echo "Usage: ./run.sh <image_type> <image>"

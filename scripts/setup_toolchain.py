@@ -210,3 +210,12 @@ if __name__ == "__main__":
     install_nasm()
     download_binutils()
     download_gcc()
+
+# git clone https://github.com/tianocore/edk2.git 
+# cd ~/edk2
+# git submodule update --init
+# make -C BaseTools
+# export EDK2_DIR=~/edk2
+# export WORKSPACE=$EDK2_DIR/Build
+# export EDK_TOOLS_PATH=$EDK2_DIR/BaseTools
+# source $EDK2_DIR/edksetup.sh

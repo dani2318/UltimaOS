@@ -1,29 +1,40 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
+#include <Uefi.h>
 
-#include <arch/x86_64/Serial.hpp>
-#include <arch/x86_64/ScreenWriter.hpp>
-#include <arch/x86_64/Paging.hpp>
-#include <arch/x86_64/IDT/IDT.hpp>
-#include <arch/x86_64/IRQ/irq.hpp>
+#define EXCEPTION_CLEAR_COLOR 0x00FF0000
+#define NORMAL_CLEAR_COLOR 0x000000FF
 
-class GDT;
-class IDT;
-class IRQ;
 
 #define EXTERNC extern "C"
+#pragma once
+#include <libs/core/UEFI.h>
 
-extern PhysicalMemoryManager g_PMM;
+// Forward declarations are not enough for the .cpp file, 
+// but fine for pointers in the .hpp
+class HAL;
+class Serial;
+class ScreenWriter;
+class PhysicalMemoryManager;
+class HeapAllocator;
+class ACPIDriver;
+class GDT;
+class IDT;
+class PageTable;
+
+// Use extern for everything to be safe
+extern HAL* g_hal;
 extern Serial* g_serialWriter;
 extern ScreenWriter* g_screenwriter;
-extern BumpAllocator g_allocator;
+extern PhysicalMemoryManager g_PMM;
 extern HeapAllocator g_heap;
-extern GDT* _gdt;
-extern IDT* idt;
-extern IRQ* irq;
+extern ACPIDriver* g_acpi;
+extern GDT* g_gdt;
+extern IDT* g_idt;
+extern EFI_SYSTEM_TABLE* g_uefi_system_table;
+extern EFI_HANDLE gImageHandle; // Note: EFI_HANDLE is usually already a pointer
+extern PageTable *kernelPLM4;
 
-extern char _kernel_start;
-extern char _kernel_end;
-extern PSF1_Header* font;
-
+extern uint64_t _kernel_start;
+extern uint64_t _kernel_end;
 #endif

@@ -2,12 +2,12 @@
   "lsp": {
     "clangd": {
       "binary": {
-        "path": "clangd"
+        "path": "toolchain/x86_64-elf/bin/x86_64-elf-gcc"
       },
       "initialization_options": {
         "compilationDatabasePath": "${workspaceFolder}",
         "fallbackFlags": [
-          "-std=c99",
+          "-std=c++17",
           "-g",
           "-ffreestanding",
           "-nostdlib",
@@ -15,9 +15,9 @@
           "-I${workspaceFolder}",
           "-I${workspaceFolder}/src",
           "-I${workspaceFolder}/src/kernel",
-          "-I${workspaceFolder}/toolchain/i686-elf/lib/gcc/i686-elf/15.1.0/include",
-          "--target=i686-elf",
-          "--sysroot=${workspaceFolder}/toolchain/i686-elf"
+          "-I${workspaceFolder}/toolchain/x86_64-elf/lib/gcc/x86_64-elf/15.1.0/include",
+          "--target=x86_64-elf",
+          "--sysroot=${workspaceFolder}/toolchain/x86_64-elf"
         ]
       }
     }
@@ -35,7 +35,7 @@
     }
   },
   "file_types": {
-    "C": ["def", "inc", "in", "x"],
-    "C++": ["C"]
+    "C": ["def", "inc", "in", "x", "c"],
+    "C++": ["cpp", "hpp"]
   }
 }

@@ -1,5 +1,5 @@
 #pragma once
-#include <arch/x86_64/UEFI.h>
+#include <libs/core/UEFI.h>
 #include <globals.hpp>
 
 static void kernel_panic(const char* msg, Framebuffer* fb, PSF1_Header* font){

@@ -1,17 +1,21 @@
 #pragma once
-#include <arch/x86_64/UEFI.h>
+#include <libs/core/UEFI.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <arch/x86_64/Interrupts/PIT/PIT.hpp>
+#include <globals.hpp>
 
-typedef struct  {
+struct  PSF1_Header{
     unsigned char magic[2];
     unsigned char mode;
     unsigned char charsize;
-} PSF1_Header;
+} ;
 
 
 #ifndef __SCREEN_WRITER_H
 #define __SCREEN_WRITER_H
+
+
 
 class ScreenWriter {
     public:
@@ -41,6 +45,9 @@ class ScreenWriter {
                 for (uint32_t x = 0; x < 8; x++) {
                     if ((glyph[y] & (0x80 >> x)) != 0) {
                         PutPixel(xOff + x, yOff + y, color);
+                    } else {
+                        // IMPORTANT: Clear the background pixel!
+                        PutPixel(xOff + x, yOff + y, NORMAL_CLEAR_COLOR); // Black background
                     }
                 }
             }
@@ -115,13 +122,56 @@ class ScreenWriter {
             this->color = value;
         }
 
+        void SetCursor(uint32_t x, uint32_t y){
+            cursor_x = x;
+            cursor_y = y;
+        }
+        void PrintDecimalPadded(uint64_t value, int width) {
+            char buffer[20];
+            int i = 0;
+            
+            // Convert to string (reversed)
+            do {
+                buffer[i++] = '0' + (value % 10);
+                value /= 10;
+            } while (value > 0 || i < width);
+            
+            // Print in correct order
+            while (i > 0) {
+                i--;
+                char str[2] = {buffer[i], '\0'};
+                Print(str);
+            }
+        }
 
+        void Uptime() {
+            uint64_t total_seconds = Timer::GetUptimeSeconds();
+            uint64_t hours = total_seconds / 3600;
+            uint64_t minutes = (total_seconds % 3600) / 60;
+            uint64_t seconds = total_seconds % 60;
+            
+            Print("Uptime: ");
+            
+            PrintDecimalPadded(hours, 2);
+            Print(":");
+            PrintDecimalPadded(minutes, 2);
+            Print(":");
+            PrintDecimalPadded(seconds, 2);
+        }
+        void Backspace() {
+            if (cursor_x >= 8) {
+                cursor_x -= 8;
+                PrintChar(' ', cursor_x, cursor_y);
+            }
+        }
     private:
         Framebuffer* target_fb;
         uint32_t cursor_x;
         uint32_t cursor_y;
         uint32_t color;
         PSF1_Header* font;
+        const uint32_t char_width = 8;
+        const uint32_t char_height = 16;
 };
 
 
