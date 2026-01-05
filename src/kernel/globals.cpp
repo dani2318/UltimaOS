@@ -8,6 +8,7 @@
 #include <arch/x86_64/Interrupts/GDT/GDT.hpp>
 #include <arch/x86_64/Interrupts/IDT/IDT.hpp>
 
+
 // Define the variables
 HAL* g_hal = nullptr;
 Serial* g_serialWriter = nullptr;

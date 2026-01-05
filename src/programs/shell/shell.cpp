@@ -27,9 +27,14 @@ int strcmp(const char* s1, const char* s2) {
 static inline uint64_t do_syscall(uint64_t num, uint64_t a1=0, uint64_t a2=0, uint64_t a3=0) {
     uint64_t ret;
     asm volatile (
-        "mov %1, %%rax; mov %2, %%rdi; mov %3, %%rsi; mov %4, %%rdx; syscall"
-        : "=a"(ret) : "g"(num), "g"(a1), "g"(a2), "g"(a3)
-        : "rcx", "r11", "memory", "rdi", "rsi", "rdx"
+        "mov %1, %%rax\n"      // syscall number
+        "mov %2, %%rdi\n"      // arg1
+        "mov %3, %%rsi\n"      // arg2
+        "mov %4, %%rdx\n"      // arg3
+        "syscall\n"
+        : "=a"(ret)
+        : "r"(num), "r"(a1), "r"(a2), "r"(a3)
+        : "rcx", "r11", "memory"
     );
     return ret;
 }

@@ -10,21 +10,24 @@ enum TaskState {
 };
 
 // CPU context saved during task switch
-struct TaskContext {
-    // General purpose registers
-    uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
-    uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
+struct TaskContext
+{
+    uint64_t rsp;      // +0
+    uint64_t rbp;      // +8
+    uint64_t rbx;      // +16
+    uint64_t r12;      // +24
+    uint64_t r13;      // +32
+    uint64_t r14;      // +40
+    uint64_t r15;      // +48
+    uint64_t rflags;   // +56
     
-    // Segment registers
-    uint64_t ds;
-    
-    // Stack and instruction pointers
-    uint64_t rip;
+    // These are NOT used by switch_task but stored for reference:
     uint64_t cs;
-    uint64_t rflags;
-    uint64_t rsp;
     uint64_t ss;
-} __attribute__((packed));
+    uint64_t ds;
+    uint64_t rip;
+    uint64_t rdi;
+};
 
 struct Task {
     uint64_t task_id;

@@ -50,24 +50,24 @@ extern "C" uint64_t syscall_handler(uint64_t arg1, uint64_t arg2, uint64_t arg3,
 
 uint64_t Syscall::Handler(uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t num) {
     switch (num) {
-        case PRINT: // 0
+        case PRINT:
             g_screenwriter->Print((const char*)arg1);
             return 0;
 
-        case EXIT: // 1
+        case EXIT:
             Scheduler::ExitTask();
             return 0;
 
-        case GET_CHAR: // 2
+        case GET_CHAR:
             if (!Keyboard::HasChar()) return 0;
             return (uint64_t)Keyboard::GetChar();
 
-        case CLEAR: // 3
-            g_screenwriter->Clear(arg1); // arg1 is the hex color
+        case CLEAR:
+            g_screenwriter->Clear(arg1);
             g_screenwriter->SetCursor(0, 0);
             return 0;
 
         default:
-            return -1;
+            return (uint64_t)-1;
     }
 }

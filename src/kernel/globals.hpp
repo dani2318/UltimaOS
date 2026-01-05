@@ -4,7 +4,7 @@
 
 #define EXCEPTION_CLEAR_COLOR 0x00FF0000
 #define NORMAL_CLEAR_COLOR 0x000000FF
-
+#define HHDM_OFFSET 0xFFFF800000000000ULL
 
 #define EXTERNC extern "C"
 #pragma once
@@ -34,7 +34,7 @@ extern IDT* g_idt;
 extern EFI_SYSTEM_TABLE* g_uefi_system_table;
 extern EFI_HANDLE gImageHandle; // Note: EFI_HANDLE is usually already a pointer
 extern PageTable *kernelPLM4;
-
+extern struct TSS g_tss;
 extern uint64_t _kernel_start;
 extern uint64_t _kernel_end;
 #endif

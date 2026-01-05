@@ -1,0 +1,346 @@
+Building libcore...
+make[1]: Entering directory '/home/dani23/NeoOS'
+[AR]      build/x86_64_debug/libcore/libcore.a
+✓ Core library built: build/x86_64_debug/libcore/libcore.a
+make[1]: Leaving directory '/home/dani23/NeoOS'
+Building UEFI bootloader...
+make[1]: Entering directory '/home/dani23/NeoOS'
+Checking UEFI dependencies...
+✓ UEFI dependencies found
+  Using system linker script: /usr/lib/elf_x86_64_efi.lds
+[CC]      src/boot/uefi_boot/bootloader.c
+[LD]      build/x86_64_debug/uefi_boot/BOOTX64.so
+✓ UEFI shared object linked: build/x86_64_debug/uefi_boot/BOOTX64.so
+[OBJCOPY] build/x86_64_debug/uefi_boot/BOOTX64.EFI
+✓ UEFI bootloader created: build/x86_64_debug/uefi_boot/BOOTX64.EFI
+  Size: 
+make[1]: Leaving directory '/home/dani23/NeoOS'
+Building kernel...
+make[1]: Entering directory '/home/dani23/NeoOS'
+[CXX]     src/kernel/arch/x86_64/Syscall.cpp
+[CXX]     src/kernel/arch/x86_64/Drivers/Keyboard.cpp
+[CXX]     src/kernel/arch/x86_64/Drivers/HAL/HAL.cpp
+[CXX]     src/kernel/arch/x86_64/Drivers/ACPI/ACPI.cpp
+[CXX]     src/kernel/arch/x86_64/Multitasking/Scheduler.cpp
+[CXX]     src/kernel/arch/x86_64/Interrupts/PIT/PIT.cpp
+[CXX]     src/kernel/arch/x86_64/Interrupts/ISR/ISR.cpp
+[CXX]     src/kernel/arch/x86_64/Interrupts/GDT/GDT.cpp
+[CXX]     src/kernel/arch/x86_64/Interrupts/PIC/PIC.cpp
+[CXX]     src/kernel/arch/x86_64/Interrupts/IDT/IDT.cpp
+[CXX]     src/kernel/uefi_globals.cpp
+[CXX]     src/kernel/main.cpp
+[CXX]     src/kernel/globals.cpp
+[CXX]     src/kernel/cpp/cppSupport.cpp
+[AS]      src/kernel/arch/x86_64/syscall_asm.asm
+[AS]      src/kernel/arch/x86_64/Multitasking/Timer_handler.asm
+[AS]      src/kernel/arch/x86_64/Multitasking/task_switch.asm
+[AS]      src/kernel/arch/x86_64/Interrupts/ISR/interupts.asm
+[AS]      src/kernel/arch/x86_64/Interrupts/GDT/gdt_asm.asm
+[AS]      src/kernel/arch/x86_64/Interrupts/IDT/idt_asm.asm
+[LD]      build/x86_64_debug/kernel/kernel.efi
+✓ Kernel ELF linked: build/x86_64_debug/kernel/kernel.efi
+  Map file: build/x86_64_debug/kernel/kernel.map
+[OBJCOPY] build/x86_64_debug/kernel/kernel.bin
+✓ Kernel binary created: build/x86_64_debug/kernel/kernel.bin
+  Size: 45K
+make[1]: Leaving directory '/home/dani23/NeoOS'
+Building user programs (shell)...
+make[1]: Entering directory '/home/dani23/NeoOS/src/programs/shell'
+/home/dani23/NeoOS/toolchain/x86_64-elf/bin/x86_64-elf-ld -T linker.ld -static -nostdlib -o ../../../build/x86_64_debug/programs/shell.elf shell.o
+make[1]: Leaving directory '/home/dani23/NeoOS/src/programs/shell'
+Creating disk image...
+make[1]: Entering directory '/home/dani23/NeoOS'
+Checking dependencies...
+✓ All dependencies found
+==========================================
+Creating UEFI Disk Image
+==========================================
+Image size:    250M (488281 sectors)
+Bootloader:    build/x86_64_debug/uefi_boot/BOOTX64.EFI
+Kernel:        build/x86_64_debug/kernel/kernel.bin
+
+[1/5] Creating empty disk image...
+      ✓ Image file created: build/x86_64_debug/image/os_image.img
+[2/5] Creating GPT partition table...
+      ✓ GPT table created with ESP partition
+[3/5] Formatting ESP as FAT32...
+      ✓ FAT32 filesystem created
+[4/5] Setting up mtools configuration...
+      ✓ mtools configured
+[5/5] Copying bootloader, kernel, and user programs...
+      Copying font file...
+      ✓ Files copied to image
+
+==========================================
+✓ UEFI Disk Image Created Successfully
+==========================================
+Size: 239M
+Location: build/x86_64_debug/image/os_image.img
+make[1]: Leaving directory '/home/dani23/NeoOS'
+Running in QEMU...
+Launching QEMU...
+[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01HBdsDxe: loading Boot0001 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+BdsDxe: starting Boot0001 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+NeoOS Bootloader: Initializing Handover...
+ACPI Table Found at: 0xBF77E014
+Kernel loaded at 0x2000000, size: 45130 bytes
+Font loaded successfully
+Memory map retrieved successfully
+Boot Services remain active - kernel will handle them
+Jumping to kernel at 0x2000000...
+K: Kernel Starting...
+K: Heap Initialized
+K: InitializePMM started
+Schedule: No current task
+K: Scheduler initialized
+K: Syscalls initialized
+Schedule: Current=idle
+K: Interrupts enabled
+Disk: Initializing IDE controller...
+Disk: IDE controller initialized
+K: Disk ready
+GPT: Reading partition table...
+GPT: Valid header found
+Schedule: Current=idle
+GPT: Partition found at LBA: 2048
+FAT32: Initializing at LBA 2048
+FAT32: Signature: 0000000000000029
+FAT32: OEM ID: mkfs.fat
+K: FAT32 ready
+Reading Root Dir at LBA: 9560
+0000000000000045 0000000000000053 0000000000000050 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000008 0000000000000000 0000000000000000 0000000000000005 000000000000009A 
+--- Root Directory Listing ---
+'ESP        ' [FILE]
+'EFI        ' [DIR]
+'NEOOS      ' [DIR]
+'PROGRAMS   ' [DIR]
+'NVVARS     ' [FILE]
+FAT32: Attempting to read: PROGRAMS/SHELL.ELF
+Reading Cluster: 199 to Buffer: 00000000BBC15250
+[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01HBdsDxe: loading Boot0001 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+BdsDxe: starting Boot0001 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+NeoOS Bootloader: Initializing Handover...
+ACPI Table Found at: 0xBF77E014
+Kernel loaded at 0x2000000, size: 45130 bytes
+Font loaded successfully
+Memory map retrieved successfully
+Boot Services remain active - kernel will handle them
+Jumping to kernel at 0x2000000...
+K: Kernel Starting...
+K: Heap Initialized
+K: InitializePMM started
+Schedule: Current=idle
+K: Scheduler initialized
+K: Syscalls initialized
+Schedule: Current=idle
+K: Interrupts enabled
+Disk: Initializing IDE controller...
+Disk: IDE controller initialized
+K: Disk ready
+GPT: Reading partition table...
+GPT: Valid header found
+GPT: Partition found at LBA: 2048
+FAT32: Initializing at LBA 2048
+FAT32: Signature: 0000000000000029
+FAT32: OEM ID: mkfs.fat
+K: FAT32 ready
+Reading Root Dir at LBA: 9560
+0000000000000045 0000000000000053 0000000000000050 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000008 0000000000000000 0000000000000000 0000000000000005 000000000000009A 
+--- Root Directory Listing ---
+'ESP        ' [FILE]
+'EFI        ' [DIR]
+'NEOOS      ' [DIR]
+'PROGRAMS   ' [DIR]
+'NVVARS     ' [FILE]
+FAT32: Attempting to read: PROGRAMS/SHELL.ELF
+Reading Cluster: 199 to Buffer: 00000000BBC15250
+[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01HBdsDxe: loading Boot0001 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+BdsDxe: starting Boot0001 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+NeoOS Bootloader: Initializing Handover...
+ACPI Table Found at: 0xBF77E014
+Kernel loaded at 0x2000000, size: 45130 bytes
+Font loaded successfully
+Memory map retrieved successfully
+Boot Services remain active - kernel will handle them
+Jumping to kernel at 0x2000000...
+K: Kernel Starting...
+K: Heap Initialized
+K: InitializePMM started
+Schedule: Current=idle
+K: Scheduler initialized
+K: Syscalls initialized
+Schedule: Current=idle
+K: Interrupts enabled
+Disk: Initializing IDE controller...
+Schedule: Current=idle
+Disk: IDE controller initialized
+K: Disk ready
+GPT: Reading partition table...
+GPT: Valid header found
+GPT: Partition found at LBA: 2048
+FAT32: Initializing at LBA 2048
+FAT32: Signature: 0000000000000029
+FAT32: OEM ID: mkfs.fat
+K: FAT32 ready
+Reading Root Dir at LBA: 9560
+0000000000000045 0000000000000053 0000000000000050 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000008 0000000000000000 0000000000000000 0000000000000005 000000000000009A 
+--- Root Directory Listing ---
+'ESP        ' [FILE]
+'EFI        ' [DIR]
+'NEOOS      ' [DIR]
+'PROGRAMS   ' [DIR]
+'NVVARS     ' [FILE]
+FAT32: Attempting to read: PROGRAMS/SHELL.ELF
+Schedule: Current=idle
+Reading Cluster: 199 to Buffer: 00000000BBC15250
+[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01HBdsDxe: loading Boot0001 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+BdsDxe: starting Boot0001 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+NeoOS Bootloader: Initializing Handover...
+ACPI Table Found at: 0xBF77E014
+Kernel loaded at 0x2000000, size: 45130 bytes
+Font loaded successfully
+Memory map retrieved successfully
+Boot Services remain active - kernel will handle them
+Jumping to kernel at 0x2000000...
+K: Kernel Starting...
+K: Heap Initialized
+K: InitializePMM started
+Schedule: Current=idle
+K: Scheduler initialized
+K: Syscalls initialized
+Schedule: Current=idle
+K: Interrupts enabled
+Disk: Initializing IDE controller...
+Disk: IDE controller initialized
+K: Disk ready
+GPT: Reading partition table...
+GPT: Valid header found
+Schedule: Current=idle
+GPT: Partition found at LBA: 2048
+FAT32: Initializing at LBA 2048
+FAT32: Signature: 0000000000000029
+FAT32: OEM ID: mkfs.fat
+K: FAT32 ready
+Reading Root Dir at LBA: 9560
+0000000000000045 0000000000000053 0000000000000050 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000008 0000000000000000 0000000000000000 0000000000000005 000000000000009A 
+--- Root Directory Listing ---
+'ESP        ' [FILE]
+'EFI        ' [DIR]
+'NEOOS      ' [DIR]
+'PROGRAMS   ' [DIR]
+'NVVARS     ' [FILE]
+FAT32: Attempting to read: PROGRAMS/SHELL.ELF
+Reading Cluster: 199 to Buffer: 00000000BBC15250
+[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01HBdsDxe: loading Boot0001 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+BdsDxe: starting Boot0001 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+NeoOS Bootloader: Initializing Handover...
+ACPI Table Found at: 0xBF77E014
+Kernel loaded at 0x2000000, size: 45130 bytes
+Font loaded successfully
+Memory map retrieved successfully
+Boot Services remain active - kernel will handle them
+Jumping to kernel at 0x2000000...
+K: Kernel Starting...
+K: Heap Initialized
+K: InitializePMM started
+Schedule: Current=idle
+K: Scheduler initialized
+K: Syscalls initialized
+Schedule: Current=idle
+K: Interrupts enabled
+Disk: Initializing IDE controller...
+Disk: IDE controller initialized
+K: Disk ready
+GPT: Reading partition table...
+Schedule: Current=idle
+GPT: Valid header found
+GPT: Partition found at LBA: 2048
+FAT32: Initializing at LBA 2048
+FAT32: Signature: 0000000000000029
+FAT32: OEM ID: mkfs.fat
+K: FAT32 ready
+Reading Root Dir at LBA: 9560
+0000000000000045 0000000000000053 0000000000000050 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000008 0000000000000000 0000000000000000 0000000000000005 000000000000009A 
+--- Root Directory Listing ---
+'ESP        ' [FILE]
+'EFI        ' [DIR]
+'NEOOS      ' [DIR]
+'PROGRAMS   ' [DIR]
+'NVVARS     ' [FILE]
+FAT32: Attempting to read: PROGRAMS/SHELL.ELF
+Reading Cluster: 199 to Buffer: 00000000BBC15250
+[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01HBdsDxe: loading Boot0001 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+BdsDxe: starting Boot0001 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+NeoOS Bootloader: Initializing Handover...
+ACPI Table Found at: 0xBF77E014
+Kernel loaded at 0x2000000, size: 45130 bytes
+Font loaded successfully
+Memory map retrieved successfully
+Boot Services remain active - kernel will handle them
+Jumping to kernel at 0x2000000...
+K: Kernel Starting...
+K: Heap Initialized
+K: InitializePMM started
+Schedule: Current=idle
+K: Scheduler initialized
+K: Syscalls initialized
+Schedule: Current=idle
+K: Interrupts enabled
+Disk: Initializing IDE controller...
+Disk: IDE controller initialized
+K: Disk ready
+GPT: Reading partition table...
+GPT: Valid header found
+GPT: Partition found at LBA: 2048
+FAT32: Initializing at LBA 2048
+FAT32: Signature: 0000000000000029
+FAT32: OEM ID: mkfs.fat
+K: FAT32 ready
+Reading Root Dir at LBA: 9560
+0000000000000045 0000000000000053 0000000000000050 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000008 0000000000000000 0000000000000000 0000000000000005 000000000000009A 
+--- Root Directory Listing ---
+'ESP        ' [FILE]
+'EFI        ' [DIR]
+'NEOOS      ' [DIR]
+'PROGRAMS   ' [DIR]
+'NVVARS     ' [FILE]
+FAT32: Attempting to read: PROGRAMS/SHELL.ELF
+Reading Cluster: 199 to Buffer: 00000000BBC15250
+[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01HBdsDxe: loading Boot0001 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+BdsDxe: starting Boot0001 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
+NeoOS Bootloader: Initializing Handover...
+ACPI Table Found at: 0xBF77E014
+Kernel loaded at 0x2000000, size: 45130 bytes
+Font loaded successfully
+Memory map retrieved successfully
+Boot Services remain active - kernel will handle them
+Jumping to kernel at 0x2000000...
+K: Kernel Starting...
+K: Heap Initialized
+K: InitializePMM started
+Schedule: Current=idle
+K: Scheduler initialized
+K: Syscalls initialized
+Schedule: Current=idle
+K: Interrupts enabled
+Disk: Initializing IDE controller...
+Disk: IDE controller initialized
+K: Disk ready
+GPT: Reading partition table...
+GPT: Valid header found
+GPT: Partition found at LBA: 2048
+FAT32: Initializing at LBA 2048
+FAT32: Signature: 0000000000000029
+FAT32: OEM ID: mkfs.fat
+K: FAT32 ready
+Reading Root Dir at LBA: 9560
+0000000000000045 0000000000000053 0000000000000050 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000020 0000000000000008 0000000000000000 0000000000000000 0000000000000005 000000000000009A 
+--- Root Directory Listing ---
+'ESP        ' [FILE]
+'EFI        ' [DIR]
+'NEOOS      ' [DIR]
+'PROGRAMS   ' [DIR]
+'NVVARS     ' [FILE]
+FAT32: Attempting to read: PROGRAMS/SHELL.ELF
+Reading Cluster: 199 to Buffer: 00000000BBC15250
+[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01H

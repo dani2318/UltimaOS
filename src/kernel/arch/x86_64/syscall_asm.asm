@@ -1,49 +1,44 @@
 [bits 64]
 [global syscall_entry]
 [extern syscall_handler]
+[extern g_tss]
 
 syscall_entry:
-    ; 1. Swap from User GS to Kernel GS (to find kernel stack)
-    swapgs
-    mov [gs:0x10], rsp     ; Save User RSP in a safe place
-    mov rsp, [gs:0x00]     ; Load Kernel RSP
-
-    ; 2. Save registers to the stack (Syscall ABI: R11=RFLAGS, RCX=RIP)
-    push r11
-    push rcx
+    ; Save user RSP in TSS temporary location
+    mov [g_tss + 104], rsp  ; offset 104 = user_rsp_temp
+    
+    ; Load kernel stack from TSS.rsp0
+    mov rsp, [g_tss + 4]    ; offset 4 = rsp0
+    
+    ; Save registers
+    push rcx               ; RIP to return to
+    push r11               ; RFLAGS
     push rbp
-    push rdi
-    push rsi
-    push rdx
-    push r8
-    push r9
-    push r10
+    push rbx
     push r12
     push r13
     push r14
     push r15
-
-    ; 3. Call the C++ handler (RDI, RSI, RDX are already syscall args)
+    
+    ; Syscall convention: rax=syscall#, rdi=arg1, rsi=arg2, rdx=arg3
+    ; C calling convention needs: rdi=arg1, rsi=arg2, rdx=arg3, rcx=syscall#
+    mov rcx, rax           ; Move syscall number to 4th argument
+    
+    ; Call handler
     call syscall_handler
-
-    ; 4. Restore registers
+    
+    ; Restore registers
     pop r15
     pop r14
     pop r13
     pop r12
-    pop r10  ; <--- This matches the push order now
-    pop r9
-    pop r8
-    pop rdx
-    pop rsi
-    pop rdi
+    pop rbx
     pop rbp
-    pop rcx 
-    pop r11
-
-    mov rsp, [gs:0x10]     ; Restore User RSP
-
-    jmp $
-
-    swapgs
+    pop r11                ; RFLAGS
+    pop rcx                ; Return RIP
+    
+    ; Restore user stack
+    mov rsp, [g_tss + 104]
+    
+    ; Return to userspace
     sysretq
