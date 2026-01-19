@@ -1,7 +1,6 @@
 #pragma once
 #include <stdint.h>
 
-#include <stdint.h>
 #include <stddef.h>
 
 extern "C" {
@@ -9,7 +8,7 @@ extern "C" {
 // Finds the first occurrence of character 'c' in string 's'
 static char* strchr(const char* s, int c) {
     while (*s != (char)c) {
-        if (!*s++) {
+        if (*s++ == 0) {
             return nullptr;
         }
     }
@@ -21,14 +20,14 @@ static char* strtok(char* str, const char* delimiters) {
     static char* lastToken = nullptr;
     
     // If str is provided, start a new scan. Otherwise, continue from lastToken.
-    if (str) {
+    if (str != nullptr) {
         lastToken = str;
-    } else if (!lastToken) {
+    } else if (lastToken == nullptr) {
         return nullptr;
     }
 
     // Skip leading delimiters
-    while (*lastToken && strchr(delimiters, *lastToken)) {
+    while ((*lastToken != 0) && (strchr(delimiters, *lastToken) != nullptr)) {
         lastToken++;
     }
 
@@ -41,11 +40,11 @@ static char* strtok(char* str, const char* delimiters) {
     char* tokenStart = lastToken;
 
     // Find the end of the token
-    while (*lastToken && !strchr(delimiters, *lastToken)) {
+    while ((*lastToken != 0) && (strchr(delimiters, *lastToken) == nullptr)) {
         lastToken++;
     }
 
-    if (*lastToken) {
+    if (*lastToken != 0) {
         // Terminate the token and advance lastToken for the next call
         *lastToken = '\0';
         lastToken++;
@@ -58,53 +57,168 @@ static char* strtok(char* str, const char* delimiters) {
 
 }
 
-// String length
 inline size_t strlen(const char* str) {
     size_t len = 0;
-    while (str[len]) len++;
+    while (str[len] != 0) len++;
     return len;
 }
 
-// String compare
 inline int strcmp(const char* str1, const char* str2) {
-    while (*str1 && (*str1 == *str2)) {
+    while ((*str1 != 0) && (*str1 == *str2)) {
         str1++;
         str2++;
     }
     return *(unsigned char*)str1 - *(unsigned char*)str2;
 }
 
-// String copy
 inline char* strcpy(char* dest, const char* src) {
-    char* original_dest = dest;
-    while (*src) {
+    char* originalDest = dest;
+    while (*src != 0) {
         *dest++ = *src++;
     }
     *dest = '\0';
-    return original_dest;
+    return originalDest;
 }
 
-// String concatenate
 inline char* strcat(char* dest, const char* src) {
-    char* original_dest = dest;
-    while (*dest) dest++;
-    while (*src) {
+    char* originalDest = dest;
+    while (*dest != 0) dest++;
+    while (*src != 0) {
         *dest++ = *src++;
     }
     *dest = '\0';
-    return original_dest;
+    return originalDest;
 }
 
+// Thread-safe strtok replacement
+inline char* strtokR(char* str, const char* delim, char** saveptr) {
+    if (str == nullptr) {
+        str = *saveptr;
+    }
+    
+    if (str == nullptr || *str == '\0') {
+        *saveptr = nullptr;
+        return nullptr;
+    }
+    
+    // Skip leading delimiters
+    while (*str != 0) {
+        bool isDelim = false;
+        for (const char* d = delim; *d != 0; d++) {
+            if (*str == *d) {
+                isDelim = true;
+                break;
+            }
+        }
+        if (!isDelim) break;
+        str++;
+    }
+    
+    if (*str == '\0') {
+        *saveptr = nullptr;
+        return nullptr;
+    }
+    
+    // Find end of token
+    char* tokenStart = str;
+    while (*str != 0) {
+        bool isDelim = false;
+        for (const char* d = delim; *d != 0; d++) {
+            if (*str == *d) {
+                isDelim = true;
+                break;
+            }
+        }
+        if (isDelim) {
+            *str = '\0';
+            *saveptr = str + 1;
+            return tokenStart;
+        }
+        str++;
+    }
+    
+    *saveptr = nullptr;
+    return tokenStart;
+}
 
-// String compare (first n characters)
-inline int strncmp(const char* str1, const char* str2, size_t n) {
+// Safe string copy with length limit
+inline size_t strlcpy(char* dst, const char* src, size_t size) {
+    size_t srcLen = 0;
+    
+    // Count source length
+    while (src[srcLen] != 0) {
+        srcLen++;
+    }
+    
+    if (size == 0) {
+        return srcLen;
+    }
+    
+    // Copy up to size-1 characters
+    size_t const copyLen = (srcLen < size - 1) ? srcLen : size - 1;
+    for (size_t i = 0; i < copyLen; i++) {
+        dst[i] = src[i];
+    }
+    dst[copyLen] = '\0';
+    
+    return srcLen;
+}
+
+// Safe string concatenation with length limit
+inline size_t strlcat(char* dst, const char* src, size_t size) {
+    size_t dstLen = 0;
+    size_t srcLen = 0;
+    
+    // Find end of dst
+    while (dstLen < size && (dst[dstLen] != 0)) {
+        dstLen++;
+    }
+    
+    // Count source length
+    while (src[srcLen] != 0) {
+        srcLen++;
+    }
+    
+    if (dstLen >= size) {
+        return dstLen + srcLen;
+    }
+    
+    // Append source
+    size_t copyLen = size - dstLen - 1;
+    if (copyLen > srcLen) {
+        copyLen = srcLen;
+    }
+    
+    for (size_t i = 0; i < copyLen; i++) {
+        dst[dstLen + i] = src[i];
+    }
+    dst[dstLen + copyLen] = '\0';
+    
+    return dstLen + srcLen;
+}
+
+// Safe string comparison with length limit
+inline int strncmp(const char* s1, const char* s2, size_t n) {
     for (size_t i = 0; i < n; i++) {
-        if (str1[i] != str2[i] || str1[i] == '\0') {
-            return (unsigned char)str1[i] - (unsigned char)str2[i];
+        if (s1[i] != s2[i]) {
+            return (unsigned char)s1[i] - (unsigned char)s2[i];
+        }
+        if (s1[i] == '\0') {
+            return 0;
         }
     }
     return 0;
 }
+
+// Check if character is in delimiter set
+inline bool isDelimiter(char c, const char* delim) {
+    for (const char* d = delim; *d != 0; d++) {
+        if (c == *d) return true;
+    }
+    return false;
+}
+
+
 
 inline char *strncpy(char *dest, const char *src, size_t n) {
     size_t i;
@@ -132,8 +246,8 @@ static inline char* itoa(int64_t value, char* str, int base) {
     
     char* ptr = str;
     char* ptr1 = str;
-    char tmp_char;
-    int64_t tmp_value;
+    char tmpChar;
+    int64_t tmpValue;
     
     // Handle negative numbers for base 10
     bool negative = false;
@@ -150,10 +264,10 @@ static inline char* itoa(int64_t value, char* str, int base) {
     }
     
     // Process individual digits
-    while (value) {
-        tmp_value = value;
+    while (value != 0) {
+        tmpValue = value;
         value /= base;
-        *ptr++ = "0123456789abcdefghijklmnopqrstuvwxyz"[tmp_value - value * base];
+        *ptr++ = "0123456789abcdefghijklmnopqrstuvwxyz"[tmpValue - value * base];
     }
     
     // Add negative sign for base 10
@@ -165,9 +279,9 @@ static inline char* itoa(int64_t value, char* str, int base) {
     
     // Reverse the string
     while (ptr1 < ptr) {
-        tmp_char = *ptr;
+        tmpChar = *ptr;
         *ptr-- = *ptr1;
-        *ptr1++ = tmp_char;
+        *ptr1++ = tmpChar;
     }
     
     return str;
@@ -182,8 +296,8 @@ static inline char* utoa(uint64_t value, char* str, int base) {
     
     char* ptr = str;
     char* ptr1 = str;
-    char tmp_char;
-    uint64_t tmp_value;
+    char tmpChar;
+    uint64_t tmpValue;
     
     if (value == 0) {
         *ptr++ = '0';
@@ -191,19 +305,19 @@ static inline char* utoa(uint64_t value, char* str, int base) {
         return str;
     }
     
-    while (value) {
-        tmp_value = value;
+    while (value != 0u) {
+        tmpValue = value;
         value /= base;
-        *ptr++ = "0123456789abcdefghijklmnopqrstuvwxyz"[tmp_value - value * base];
+        *ptr++ = "0123456789abcdefghijklmnopqrstuvwxyz"[tmpValue - value * base];
     }
     
     *ptr-- = '\0';
     
     // Reverse
     while (ptr1 < ptr) {
-        tmp_char = *ptr;
+        tmpChar = *ptr;
         *ptr-- = *ptr1;
-        *ptr1++ = tmp_char;
+        *ptr1++ = tmpChar;
     }
     
     return str;

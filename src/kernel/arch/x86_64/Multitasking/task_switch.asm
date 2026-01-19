@@ -1,54 +1,69 @@
 [bits 64]
-global switch_task
-
-switch_task:
-    ; RDI = &old_task->context
-    ; RSI = &new_task->context
-    ; RDX = next_task->page_table (New CR3)
-
-    ; 1. Save old context
-    mov [rdi + 0], rsp
-    mov [rdi + 8], rbp
-    mov [rdi + 16], rbx
-    mov [rdi + 24], r12
-    mov [rdi + 32], r13
-    mov [rdi + 40], r14
-    mov [rdi + 48], r15
-    pushfq
-    pop qword [rdi + 56]
-
-    ; 2. Switch Page Table (CR3)
-    ; Important: We do this AFTER saving the old RSP but BEFORE loading the new RSP
-    ; to ensure we are using the new address space for the new task's stack.
-    mov rax, cr3
-    cmp rax, rdx
-    je .skip_cr3
-    mov cr3, rdx    ; Atomic swap of address space
-.skip_cr3:
-
-    ; 3. Load new context
-    mov rsp, [rsi + 0]
-    mov rbp, [rsi + 8]
-    mov rbx, [rsi + 16]
-    mov r12, [rsi + 24]
-    mov r13, [rsi + 32]
-    mov r14, [rsi + 40]
-    mov r15, [rsi + 48]
-    push qword [rsi + 56]
-    popfq
-
-    ret  ; Pops the trampoline address (or return RIP) and jumps to it
-
+global switch_context
 global user_task_trampoline
+
+; RDI = &old_task->context (Task_Registers*)
+; RSI = &new_task->context (Task_Registers*)
+
+switch_context:
+    ; Save current context to old_task->context (RDI)
+    
+    ; Save general purpose registers (32-bit as per Task_Registers struct)
+    mov [rdi + 0],  eax     ; eax offset 0
+    mov [rdi + 4],  ebx     ; ebx offset 4
+    mov [rdi + 8],  ecx     ; ecx offset 8
+    mov [rdi + 12], edx     ; edx offset 12
+    mov [rdi + 16], edi     ; edi offset 16
+    mov [rdi + 20], esp     ; esp offset 20
+    mov [rdi + 24], ebp     ; ebp offset 24
+    
+    ; Save EIP (return address) - offset 28
+    mov rax, [rsp]
+    mov [rdi + 28], eax
+    
+    ; Save EFLAGS - offset 32
+    pushfq
+    pop rax
+    mov [rdi + 32], eax
+    
+    ; Save CR3 - offset 36
+    mov rax, cr3
+    mov [rdi + 36], eax
+    
+    ; Load new context from new_task->context (RSI)
+    
+    ; Load CR3 first (switch page tables)
+    mov eax, [rsi + 36]
+    mov cr3, rax
+    
+    ; Load EFLAGS
+    mov eax, [rsi + 32]
+    push rax
+    popfq
+    
+    ; Load general purpose registers
+    mov eax, [rsi + 0]
+    mov ebx, [rsi + 4]
+    mov ecx, [rsi + 8]
+    mov edx, [rsi + 12]
+    mov ebp, [rsi + 24]
+    mov esp, [rsi + 20]
+    
+    ; Load EIP and jump
+    mov edi, [rsi + 28]     ; Load EIP into EDI temporarily
+    push rdi                 ; Push as return address
+    mov edi, [rsi + 16]     ; Restore EDI
+    ret                      ; Jump to new EIP
+
 user_task_trampoline:
-    ; 1. Set data segments to User Data (0x23)
+    ; Set data segments to User Data (0x23)
     mov ax, 0x23
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
 
-    ; 2. Clear general purpose registers (Security: don't leak kernel data)
+    ; Clear general purpose registers (Security: don't leak kernel data)
     xor rax, rax
     xor rbx, rbx
     xor rcx, rcx
@@ -65,6 +80,6 @@ user_task_trampoline:
     xor r14, r14
     xor r15, r15
 
-    ; 3. The IRET frame is already on the stack from Scheduler::CreateTask
+    ; The IRET frame is already on the stack from Scheduler::CreateTask
     ; [RIP, CS, RFLAGS, RSP, SS]
     iretq

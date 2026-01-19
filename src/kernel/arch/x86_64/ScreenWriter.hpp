@@ -1,180 +1,234 @@
 #pragma once
-#include <libs/core/UEFI.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <arch/x86_64/Interrupts/PIT/PIT.hpp>
 #include <globals.hpp>
+#include <arch/x86_64/Serial.hpp>
 
-struct  PSF1_Header{
+struct PsF1Header
+{
     unsigned char magic[2];
     unsigned char mode;
     unsigned char charsize;
-} ;
+};
 
-
+#define SERIAL_COM1 0x3F8
 #ifndef __SCREEN_WRITER_H
-#define __SCREEN_WRITER_H
+#define SCREEN_WRITER_H
 
+class ScreenWriter
+{
+public:
+    ScreenWriter(Framebuffer *fb, PsF1Header *font)
+        : m_target_fb(fb),  m_font(font)
+    {
+        outb(SERIAL_COM1 + 1, 0x00); // Disable interrupts
+        outb(SERIAL_COM1 + 3, 0x80); // Enable DLAB
+        outb(SERIAL_COM1 + 0, 0x01); // Divisor low byte (115200 baud)
+        outb(SERIAL_COM1 + 1, 0x00); // Divisor high byte
+        outb(SERIAL_COM1 + 3, 0x03); // 8 bits, no parity, one stop bit
+        outb(SERIAL_COM1 + 2, 0xC7); // Enable FIFO, clear, 14-byte threshold
+        outb(SERIAL_COM1 + 4, 0x0B); // IRQs enabled, RTS/DSR set
+    }
 
+    void putPixel(uint32_t x, uint32_t y, uint32_t pixelColor)
+    {
+        if (x >= m_target_fb->Width || y >= m_target_fb->Height)
+            return;
 
-class ScreenWriter {
-    public:
-        ScreenWriter(Framebuffer* fb, PSF1_Header* font) 
-            : target_fb(fb), cursor_x(0), cursor_y(0), font(font), color(0xFFFFFFFF) {
+        uint32_t *pixelPtr = (uint32_t *)m_target_fb->BaseAddress;
+        pixelPtr[x + (y * m_target_fb->PixelsPerScanLine)] = pixelColor;
+    }
 
+    void clear(uint32_t clearColor)
+    {
+        uint64_t const pixelsToClear = (uint64_t)m_target_fb->Height * m_target_fb->PixelsPerScanLine;
+        uint32_t *pixelPtr = (uint32_t *)m_target_fb->BaseAddress;
+
+        for (uint64_t i = 0; i < pixelsToClear; i++)
+        {
+            pixelPtr[i] = clearColor;
         }
+    }
 
-        inline void PutPixel(uint32_t x, uint32_t y, uint32_t pixel_color) {
-            if (x >= target_fb->Width || y >= target_fb->Height) return;
-            
-            uint32_t* pixel_ptr = (uint32_t*)target_fb->BaseAddress;
-            pixel_ptr[x + (y * target_fb->PixelsPerScanLine)] = pixel_color;
-        }
-
-        inline void Clear(uint32_t clear_color) {
-            uint64_t pixels_to_clear = (uint64_t)target_fb->Height * target_fb->PixelsPerScanLine;
-            uint32_t* pixel_ptr = (uint32_t*)target_fb->BaseAddress;
-            
-            for (uint64_t i = 0; i < pixels_to_clear; i++) {
-                pixel_ptr[i] = clear_color;
-            }
-        }
-        inline void PrintChar(char c, uint32_t xOff, uint32_t yOff) {
-            unsigned char* glyph = (unsigned char*)font + sizeof(PSF1_Header) + ((unsigned char)c * font->charsize);
-            for (uint32_t y = 0; y < font->charsize; y++) {
-                for (uint32_t x = 0; x < 8; x++) {
-                    if ((glyph[y] & (0x80 >> x)) != 0) {
-                        PutPixel(xOff + x, yOff + y, color);
-                    } else {
-                        // IMPORTANT: Clear the background pixel!
-                        PutPixel(xOff + x, yOff + y, NORMAL_CLEAR_COLOR); // Black background
+    void printChar(char c, uint32_t xOff, uint32_t yOff, bool useSerial = false)
+    {
+        if (!useSerial)
+        {
+            unsigned char *glyph = (unsigned char *)m_font + sizeof(PsF1Header) + ((unsigned char)c * m_font->charsize);
+            for (uint32_t y = 0; y < m_font->charsize; y++)
+            {
+                for (uint32_t x = 0; x < 8; x++)
+                {
+                    if ((glyph[y] & (0x80 >> x)) != 0)
+                    {
+                        putPixel(xOff + x, yOff + y, color);
+                    }
+                    else
+                    {
+                        putPixel(xOff + x, yOff + y,  0x0000000); // Black background
                     }
                 }
             }
         }
-        
-        inline void Print(const char* str) {
+        else
+        {
+            while ((inb(SERIAL_COM1 + 5) & 0x20) == 0)
+            {
+            };
+            outb(SERIAL_COM1, (uint8_t)c);
+        }
+    }
 
-            while (*str != '\0') {
-                if (*str == '\n') {
-                    cursor_y += font->charsize;
-                    cursor_x = 0;
-                } 
-                else if (*str == '\r') {
+    void print(const char *str, bool useSerial = false)
+    {
+        if (!useSerial)
+        {
+            while (*str != '\0')
+            {
+                if (*str == '\n')
+                {
+                    cursor_y += m_font->charsize;
                     cursor_x = 0;
                 }
-                else if (*str == '\t') {
+                else if (*str == '\r')
+                {
+                    cursor_x = 0;
+                }
+                else if (*str == '\t')
+                {
                     cursor_x += 32;
-                    if (cursor_x >= target_fb->Width) {
+                    if (cursor_x >= m_target_fb->Width)
+                    {
                         cursor_x = 0;
-                        cursor_y += font->charsize;
+                        cursor_y += m_font->charsize;
                     }
                 }
-                else {
-                    PrintChar(*str, cursor_x, cursor_y);
+                else
+                {
+                    printChar(*str, cursor_x, cursor_y);
                     cursor_x += 8;
-                    
-                    if (cursor_x + 8 > target_fb->Width) {
+
+                    if (cursor_x + 8 > m_target_fb->Width)
+                    {
                         cursor_x = 0;
-                        cursor_y += font->charsize;
+                        cursor_y += m_font->charsize;
                     }
-                    
-                    if (cursor_y + font->charsize > target_fb->Height) {
+
+                    if (cursor_y + m_font->charsize > m_target_fb->Height)
+                    {
                         cursor_y = 0;
                     }
                 }
                 str++;
             }
         }
-
-        void PrintHex(uint64_t val) {
-            char hex[] = "0123456789ABCDEF";
-            char buf[17];
-            buf[16] = '\0';
-
-            for (int i = 15; i >= 0; i--) {
-                buf[i] = hex[val & 0xF];
-                val >>= 4;
+        else
+        {
+            while (*str != 0)
+            {
+                printChar(*str++,cursor_x, cursor_y,true);
             }
-
-            Print(buf);
         }
+    }
 
-
-        void PrintUint(uint64_t value) {
-            char buf[21];
-            int i = 20;
-            buf[i] = '\0';
-
-            if (value == 0) {
-                buf[--i] = '0';
-            } else {
-                while (value > 0) {
-                    buf[--i] = '0' + (value % 10);
-                    value /= 10;
-                }
-            }
-
-            Print(&buf[i]);
+    void printHex(uint64_t val, bool useSerial) {
+        char buf[19]; // 0x + 16 digits + null
+        buf[0] = '0'; buf[1] = 'x';
+        const char* hex = "0123456789ABCDEF";
+        for(int i = 17; i >= 2; i--) {
+            buf[i] = hex[val & 0xF];
+            val >>= 4;
         }
+        buf[18] = 0;
+        this->print(buf, useSerial);
+    }
 
-        void SetColor(uint32_t value){
-            this->color = value;
-        }
+    void printUint(uint64_t value)
+    {
+        char buf[21];
+        int i = 20;
+        buf[i] = '\0';
 
-        void SetCursor(uint32_t x, uint32_t y){
-            cursor_x = x;
-            cursor_y = y;
+        if (value == 0)
+        {
+            buf[--i] = '0';
         }
-        void PrintDecimalPadded(uint64_t value, int width) {
-            char buffer[20];
-            int i = 0;
-            
-            // Convert to string (reversed)
-            do {
-                buffer[i++] = '0' + (value % 10);
+        else
+        {
+            while (value > 0)
+            {
+                buf[--i] = '0' + (value % 10);
                 value /= 10;
-            } while (value > 0 || i < width);
-            
-            // Print in correct order
-            while (i > 0) {
-                i--;
-                char str[2] = {buffer[i], '\0'};
-                Print(str);
             }
         }
 
-        void Uptime() {
-            uint64_t total_seconds = Timer::GetUptimeSeconds();
-            uint64_t hours = total_seconds / 3600;
-            uint64_t minutes = (total_seconds % 3600) / 60;
-            uint64_t seconds = total_seconds % 60;
-            
-            Print("Uptime: ");
-            
-            PrintDecimalPadded(hours, 2);
-            Print(":");
-            PrintDecimalPadded(minutes, 2);
-            Print(":");
-            PrintDecimalPadded(seconds, 2);
+        print(&buf[i],false);
+    }
+
+    void setColor(uint32_t value)
+    {
+        this->color = value;
+    }
+
+    void setCursor(uint32_t x, uint32_t y)
+    {
+        cursor_x = x;
+        cursor_y = y;
+    }
+    void printDecimalPadded(uint64_t value, int width)
+    {
+        char buffer[20];
+        int i = 0;
+
+        // Convert to string (reversed)
+        do
+        {
+            buffer[i++] = '0' + (value % 10);
+            value /= 10;
+        } while (value > 0 || i < width);
+
+        // Print in correct order
+        while (i > 0)
+        {
+            i--;
+            char str[2] = {buffer[i], '\0'};
+            print(str, false);
         }
-        void Backspace() {
-            if (cursor_x >= 8) {
-                cursor_x -= 8;
-                PrintChar(' ', cursor_x, cursor_y);
-            }
+    }
+
+    void uptime()
+    {
+        uint64_t const totalSeconds = Timer::getUptimeSeconds();
+        uint64_t const hours = totalSeconds / 3600;
+        uint64_t const minutes = (totalSeconds % 3600) / 60;
+        uint64_t const seconds = totalSeconds % 60;
+
+        print("Uptime: ", false);
+
+        printDecimalPadded(hours, 2);
+        print(":", false);
+        printDecimalPadded(minutes, 2);
+        print(":", false);
+        printDecimalPadded(seconds, 2);
+    }
+    void backspace()
+    {
+        if (cursor_x >= 8)
+        {
+            cursor_x -= 8;
+            printChar(' ', cursor_x, cursor_y);
         }
-    private:
-        Framebuffer* target_fb;
-        uint32_t cursor_x;
-        uint32_t cursor_y;
-        uint32_t color;
-        PSF1_Header* font;
-        const uint32_t char_width = 8;
-        const uint32_t char_height = 16;
+    }
+
+private:
+    Framebuffer *m_target_fb;
+    uint32_t cursor_x{0};
+    uint32_t cursor_y{0};
+    uint32_t color{0xFFFFFFFF};
+    PsF1Header *m_font;
+    const uint32_t CHAR_WIDTH = 8;
+    const uint32_t CHAR_HEIGHT = 16;
 };
-
-
-
 
 #endif // __SCREEN_WRITER_H

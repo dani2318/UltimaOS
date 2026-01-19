@@ -1,0 +1,35 @@
+[
+  {
+    "arguments": [
+      "toolchain/x86_64-elf/bin/x86_64-elf-g++",
+      "-std=c++17",
+      "-ffreestanding",
+      "-fno-stack-protector",
+      "-fno-exceptions",
+      "-fno-rtti",
+      "-mno-red-zone",
+      "-g",
+      "-O0",
+      "-ffreestanding",
+      "-fno-stack-protector",
+      "-mno-red-zone",
+      "-Isrc/kernel",
+      "-Isrc/libs/core",
+      "-Isrc",
+      "-I/home/dani23/NeoOS/toolchain/edk2/MdePkg/Include/Library",
+      "-I/home/dani23/NeoOS/toolchain/edk2/MdePkg/Include",
+      "-I/home/dani23/NeoOS/toolchain/edk2/MdePkg/Include/Uefi",
+      "-I/home/dani23/NeoOS/toolchain/edk2/MdePkg/Include/Library",
+      "-I/home/dani23/NeoOS/toolchain/edk2/MdePkg/Include/Protocol",
+      "-I/home/dani23/NeoOS/toolchain/edk2/MdePkg/Include/X64",
+      "-fshort-wchar",
+      "-c",
+      "-o",
+      "build/x86_64_debug/kernel/arch/x86_64/Paging/PageTableManager.o",
+      "src/kernel/arch/x86_64/Paging/PageTableManager.cpp"
+    ],
+    "directory": "/home/dani23/NeoOS",
+    "file": "/home/dani23/NeoOS/src/kernel/arch/x86_64/Paging/PageTableManager.cpp",
+    "output": "/home/dani23/NeoOS/build/x86_64_debug/kernel/arch/x86_64/Paging/PageTableManager.o"
+  }
+]

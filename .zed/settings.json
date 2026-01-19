@@ -2,22 +2,14 @@
   "lsp": {
     "clangd": {
       "binary": {
-        "path": "toolchain/x86_64-elf/bin/x86_64-elf-gcc"
-      },
-      "initialization_options": {
-        "compilationDatabasePath": "${workspaceFolder}",
-        "fallbackFlags": [
-          "-std=c++17",
-          "-g",
-          "-ffreestanding",
-          "-nostdlib",
-          "-fbuiltin",
-          "-I${workspaceFolder}",
-          "-I${workspaceFolder}/src",
-          "-I${workspaceFolder}/src/kernel",
-          "-I${workspaceFolder}/toolchain/x86_64-elf/lib/gcc/x86_64-elf/15.1.0/include",
-          "--target=x86_64-elf",
-          "--sysroot=${workspaceFolder}/toolchain/x86_64-elf"
+        "path": "clangd",
+        "arguments": [
+          "--query-driver=/home/dani23/NeoOS/toolchain/x86_64-elf/bin/x86_64-elf-*",
+          "--background-index",
+          "--clang-tidy",
+          "--compile-commands-dir=/home/dani23/NeoOS",
+          "--header-insertion=never",
+          "-j=4"
         ]
       }
     }

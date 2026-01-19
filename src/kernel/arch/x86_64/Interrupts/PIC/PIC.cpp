@@ -24,9 +24,7 @@ void PIC::Initialize() {
     outb(PIC1_DATA, 32);  // Master PIC offset to 32 (IRQ 0-7 -> INT 32-39)
     outb(PIC2_DATA, 40);  // Slave PIC offset to 40 (IRQ 8-15 -> INT 40-47)
     
-    // Tell Master PIC there's a slave at IRQ2
     outb(PIC1_DATA, 0x04);
-    // Tell Slave PIC its cascade identity
     outb(PIC2_DATA, 0x02);
     
     // Set mode to 8086

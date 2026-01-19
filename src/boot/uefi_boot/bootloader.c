@@ -45,7 +45,7 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
     uefi_call_wrapper(SystemTable->BootServices->HandleProtocol, 3, ImageHandle, &loaded_image_guid, (void**)&loaded_image);
     uefi_call_wrapper(SystemTable->BootServices->HandleProtocol, 3, loaded_image->DeviceHandle, &vfs_guid, (void**)&vfs);
     uefi_call_wrapper(vfs->OpenVolume, 2, vfs, &root);
-    
+
     status = uefi_call_wrapper(root->Open, 5, root, &kernel_file, L"\\NEOOS\\KERNEL.BIN", EFI_FILE_MODE_READ, 0);
     if (status != EFI_SUCCESS) {
         Print(L"Kernel not found!\r\n");
@@ -59,8 +59,8 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
     uefi_call_wrapper(kernel_file->GetInfo, 4, kernel_file, &file_info_guid, &info_size, info);
     UINTN kernel_size = info->FileSize;
 
-    EFI_PHYSICAL_ADDRESS kernel_buffer = 0x2000000; 
-    UINTN pages = (kernel_size + 4095) / 4096; 
+    EFI_PHYSICAL_ADDRESS kernel_buffer = 0x2000000;
+    UINTN pages = (kernel_size + 4095) / 4096;
     status = uefi_call_wrapper(SystemTable->BootServices->AllocatePages, 4, AllocateAddress, EfiLoaderCode, pages, &kernel_buffer);
 
     if (EFI_ERROR(status)) {
@@ -70,7 +70,7 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
 
     UINTN read_size = kernel_size;
     uefi_call_wrapper(kernel_file->Read, 3, kernel_file, &read_size, (void*)kernel_buffer);
-    
+
     Print(L"Kernel loaded at 0x%lx, size: %lu bytes\r\n", kernel_buffer, kernel_size);
 
     EFI_FILE_PROTOCOL *font_file;
@@ -81,13 +81,13 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
         EFI_FILE_INFO *f_info;
         uefi_call_wrapper(SystemTable->BootServices->AllocatePool, 3, EfiLoaderData, f_info_size, (void**)&f_info);
         uefi_call_wrapper(font_file->GetInfo, 4, font_file, &file_info_guid, &f_info_size, f_info);
-        
+
         UINTN font_size = f_info->FileSize;
         EFI_PHYSICAL_ADDRESS font_buffer;
         uefi_call_wrapper(SystemTable->BootServices->AllocatePages, 4, AllocateAnyPages, EfiLoaderData, (font_size + 4095) / 4096, &font_buffer);
-        
+
         uefi_call_wrapper(font_file->Read, 3, font_file, &font_size, (void*)font_buffer);
-        
+
         final_boot_info.font_address = (void*)font_buffer;
         Print(L"Font loaded successfully\r\n");
     } else {
@@ -100,22 +100,22 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
     EFI_MEMORY_DESCRIPTOR* mmap = NULL;
 
     uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &mmap_size, NULL, &map_key, &descriptor_size, &descriptor_version);
-    
-    mmap_size += (4 * descriptor_size); 
+
+    mmap_size += (4 * descriptor_size);
     uefi_call_wrapper(SystemTable->BootServices->AllocatePool, 3, EfiLoaderData, mmap_size, (void**)&mmap);
 
     status = uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &mmap_size, mmap, &map_key, &descriptor_size, &descriptor_version);
-    
+
     if (EFI_ERROR(status)) {
         Print(L"ERROR: Could not get memory map! Status: %d\r\n", status);
-        uefi_call_wrapper(SystemTable->BootServices->Stall, 1, 5000000); 
+        uefi_call_wrapper(SystemTable->BootServices->Stall, 1, 5000000);
         return status;
     }
 
     Print(L"Memory map retrieved successfully\r\n");
     Print(L"Boot Services remain active - kernel will handle them\r\n");
 
-  
+
     final_boot_info.kernel_entry    = (void*)(uintptr_t)kernel_buffer;
     final_boot_info.rsdt_address    = rsdt_ptr;
     final_boot_info.framebuffer     = *fb;
@@ -124,19 +124,19 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
     final_boot_info.descriptor_size = (unsigned int)descriptor_size;
 
     Print(L"Jumping to kernel at 0x%lx...\r\n", kernel_buffer);
-    
+
     uefi_call_wrapper(SystemTable->BootServices->Stall, 1, 500000);
 
     KernelStart kernel_start = (KernelStart)kernel_buffer;
-    
+
     __asm__ volatile ("cli");
-    
+
     kernel_start(&final_boot_info, SystemTable, &ImageHandle);
 
     Print(L"ERROR: Kernel returned control to bootloader!\r\n");
     while(1) {
         __asm__ volatile ("hlt");
     }
-    
+
     return EFI_SUCCESS;
 }

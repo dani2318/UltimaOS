@@ -1,19 +1,20 @@
+#pragma once
 #ifndef GLOBALS_H
 #define GLOBALS_H
 #include <Uefi.h>
+#include <libs/core/UEFI.h>
+#include <arch/x86_64/Paging/Paging.hpp>
 
-#define EXCEPTION_CLEAR_COLOR 0x00FF0000
-#define NORMAL_CLEAR_COLOR 0x000000FF
-#define HHDM_OFFSET 0xFFFF800000000000ULL
+
+#define EXCEPTION_CLEAR_COLOR = 0x00FF0000,
+#define NORMAL_CLEAR_COLOR = 0x0000000,
+#define HHDM_OFFSET = 0xFFFF800000000000ULL,
+#define PHYS_MAP_OFFSET = 0xFFFF888000000000ULL
+
 
 #define EXTERNC extern "C"
-#pragma once
-#include <libs/core/UEFI.h>
 
-// Forward declarations are not enough for the .cpp file, 
-// but fine for pointers in the .hpp
 class HAL;
-class Serial;
 class ScreenWriter;
 class PhysicalMemoryManager;
 class HeapAllocator;
@@ -21,20 +22,20 @@ class ACPIDriver;
 class GDT;
 class IDT;
 class PageTable;
+class Scheduler;
 
-// Use extern for everything to be safe
-extern HAL* g_hal;
-extern Serial* g_serialWriter;
-extern ScreenWriter* g_screenwriter;
-extern PhysicalMemoryManager g_PMM;
-extern HeapAllocator g_heap;
-extern ACPIDriver* g_acpi;
-extern GDT* g_gdt;
-extern IDT* g_idt;
-extern EFI_SYSTEM_TABLE* g_uefi_system_table;
-extern EFI_HANDLE gImageHandle; // Note: EFI_HANDLE is usually already a pointer
+extern HAL* gHal;
+extern ScreenWriter* gScreenwriter;
+extern PhysicalMemoryManager gPmm;
+extern HeapAllocator gHeap;
+extern ACPIDriver* gAcpi;
+extern GDT* gGdt;
+extern IDT* gIdt;
+extern EFI_SYSTEM_TABLE* gUefiSystemTable;
+extern EFI_HANDLE gImageHandle;
 extern PageTable *kernelPLM4;
-extern struct TSS g_tss;
+extern struct TSS gTss;
 extern uint64_t _kernel_start;
 extern uint64_t _kernel_end;
+extern Scheduler* gScheduler;
 #endif

@@ -23,11 +23,19 @@ SECTIONS
     {
         *(.rodata .rodata.*)
 
+        /* C++ Constructors */
         . = ALIGN(8);
         __init_array_start = .;
         KEEP(*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
         KEEP(*(.init_array .ctors))
         __init_array_end = .;
+
+        /* C++ Destructors (optional, but good to have) */
+        . = ALIGN(8);
+        __fini_array_start = .;
+        KEEP(*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*)))
+        KEEP(*(.fini_array .dtors))
+        __fini_array_end = .;
     } :rodata
 
     .data : ALIGN(4K)
@@ -43,3 +51,6 @@ SECTIONS
 
     _kernel_end = .;
 }
+
+/* Provide additional symbols for debugging */
+PROVIDE(_kernel_size = _kernel_end - _kernel_start);

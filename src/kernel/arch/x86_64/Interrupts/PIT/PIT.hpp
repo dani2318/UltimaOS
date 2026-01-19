@@ -3,11 +3,11 @@
 
 class Timer {
 public:
-    static void Initialize(uint32_t frequency);
-    static uint64_t GetTicks();
-    static uint64_t GetUptimeSeconds();
-    static void Sleep(uint32_t milliseconds);
-    static void OnInterrupt();  // Called from IRQ 0 handler
+    static void initialize(uint32_t frequency);
+    static uint64_t getTicks();
+    static uint64_t getUptimeSeconds();
+    static void sleep(uint32_t milliseconds);
+    static void onInterrupt();  // Called from IRQ 0 handler
     
 private:
     static uint64_t ticks;

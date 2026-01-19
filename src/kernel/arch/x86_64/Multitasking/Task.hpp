@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#include <arch/x86_64/Paging.hpp>
+#include <arch/x86_64/Paging/Paging.hpp>
 
 enum TaskState {
     TASK_RUNNING,
@@ -9,32 +9,18 @@ enum TaskState {
     TASK_TERMINATED
 };
 
-// CPU context saved during task switch
-struct TaskContext
-{
-    uint64_t rsp;      // +0
-    uint64_t rbp;      // +8
-    uint64_t rbx;      // +16
-    uint64_t r12;      // +24
-    uint64_t r13;      // +32
-    uint64_t r14;      // +40
-    uint64_t r15;      // +48
-    uint64_t rflags;   // +56
-    
-    // These are NOT used by switch_task but stored for reference:
-    uint64_t cs;
-    uint64_t ss;
-    uint64_t ds;
-    uint64_t rip;
-    uint64_t rdi;
+struct Task_Registers{
+    uint32_t eax, ebx, ecx, edx, edi, esp, ebp, eip, eflags, cr3;
 };
+
+typedef struct Task_Registers Task_Registers;
 
 struct Task {
     uint64_t task_id;
     char name[32];
     TaskState state;
     
-    TaskContext context;
+    Task_Registers context;
     
     // Stack
     uint64_t kernel_stack;

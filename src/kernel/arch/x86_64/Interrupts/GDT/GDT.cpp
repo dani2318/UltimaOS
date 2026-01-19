@@ -47,7 +47,5 @@ void GDT::Initialize() {
     
     gdt_flush((uint64_t)&gdt_ptr);
 
-    // 2. Load Task Register (0x28 = Index 5)
-    // IMPORTANT: This must happen AFTER gdt_flush
     asm volatile("ltr %%ax" : : "a"((uint16_t)0x28));
 }

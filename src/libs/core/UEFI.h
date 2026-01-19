@@ -14,8 +14,8 @@ typedef struct Framebuffer Framebuffer;
 
 typedef struct {
     void* kernel_entry;
-    void* rsdt_address;      
-    void* mmap_address;      
+    void* rsdt_address;
+    void* mmap_address;
     unsigned int mmap_size;
     unsigned int descriptor_size; // Added: kernel needs this to parse mmap
     void* font_address;
@@ -39,4 +39,3 @@ struct RSDPDescriptor20 {
     uint8_t ExtendedChecksum;
     uint8_t reserved[3];
 } __attribute__ ((packed));
-

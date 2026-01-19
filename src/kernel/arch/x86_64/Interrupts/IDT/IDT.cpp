@@ -7,6 +7,8 @@
 #define FLAG_SET(x, flag)   x |= flag
 #define FLAG_UNSET(x, flag) x &= ~flag
 
+EXTERNC void Timer_Handler();
+
 void IDT::setIDTEntry(int index, uint64_t handler, uint16_t selector, uint8_t typeattr){
     idt[index].offset_low = handler & 0xFFFF;
     idt[index].selector = selector;
@@ -25,7 +27,7 @@ void IDT::Initialize(){
     setIDTEntry(14, (uint64_t)isr14, 0x08, 0x8E);  // General protection
 
     // IRQ Setup
-    setIDTEntry(32, (uint64_t)irq0, 0x08, 0x8E);   // Timer
+    setIDTEntry(32, (uint64_t)Timer_Handler, 0x08, 0x8E);   // Timer
     setIDTEntry(33, (uint64_t)irq1, 0x08, 0x8E);   // Keyboard
     setIDTEntry(34, (uint64_t)irq2, 0x08, 0x8E);   // Cascade
     setIDTEntry(35, (uint64_t)irq3, 0x08, 0x8E);   // COM2
@@ -45,9 +47,7 @@ void IDT::Initialize(){
     
     IDTLoad(&idtr);
     PIC::Initialize();
-
-    PIC::ClearMask(0);
+    PIC::SetMask(0);
     PIC::ClearMask(1);
 
-    __asm__ volatile("sti");
 }

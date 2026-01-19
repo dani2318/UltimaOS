@@ -2,130 +2,131 @@
 #include <arch/x86_64/Interrupts/PIC/PIC.hpp>
 #include <arch/x86_64/Interrupts/PIT/PIT.hpp>
 
-#include <arch/x86_64/Drivers/Keyboard.hpp>
+#include <Drivers/Input/Keyboard.hpp>
 #include <arch/x86_64/Multitasking/Scheduler.hpp>
 #include <arch/x86_64/ScreenWriter.hpp> // <--- ADD THIS LINE
 #include <globals.hpp>
 
+void print_registers(struct Registers *regs)
+{
 
-// uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
-// uint64_t rbp, rdi, rsi, rdx, rcx, rbx, rax;
-// uint64_t int_no, err_code;
-// struct InterruptFrame frame;
+    gScreenwriter->print("\r\n", false);
+    gScreenwriter->print("r15: ", false);
+    gScreenwriter->printHex(regs->r15, false);
 
-void print_registers(struct Registers *regs){
-    
-    g_screenwriter->Print("\r\n");
-    g_screenwriter->Print("r15: ");
-    g_screenwriter->PrintHex(regs->r15);
+    gScreenwriter->print("\trbp: ", false);
+    gScreenwriter->printHex(regs->rbp, false);
 
-    g_screenwriter->Print("\trbp: ");
-    g_screenwriter->PrintHex(regs->rbp);
+    gScreenwriter->print("\terr_code: ", false);
+    gScreenwriter->printHex(regs->err_code, false);
 
-    g_screenwriter->Print("\terr_code: ");
-    g_screenwriter->PrintHex(regs->err_code);
+    gScreenwriter->print("\r\n", false);
 
-    g_screenwriter->Print("\r\n");
+    gScreenwriter->print("r14: ", false);
+    gScreenwriter->printHex(regs->r14, false);
 
-    g_screenwriter->Print("r14: ");
-    g_screenwriter->PrintHex(regs->r14);
-    
-    g_screenwriter->Print("\trdi: ");
-    g_screenwriter->PrintHex(regs->rdi);
-    
-    g_screenwriter->Print("\tint_no: ");
-    g_screenwriter->PrintHex(regs->int_no);
+    gScreenwriter->print("\trdi: ", false);
+    gScreenwriter->printHex(regs->rdi, false);
 
-    g_screenwriter->Print("\r\n");
+    gScreenwriter->print("\tint_no:", false);
+    gScreenwriter->printHex(regs->int_no, false);
 
-    g_screenwriter->Print("r13: ");
-    g_screenwriter->PrintHex(regs->r13);
-    
-    g_screenwriter->Print("\trsi: ");
-    g_screenwriter->PrintHex(regs->rsi);
-    g_screenwriter->Print("\r\n");
+    gScreenwriter->print("\r\n", false);
 
-    g_screenwriter->Print("r12: ");
-    g_screenwriter->PrintHex(regs->r12);
+    gScreenwriter->print("r13: ", false);
+    gScreenwriter->printHex(regs->r13, false);
 
-    g_screenwriter->Print("\trdx: ");
-    g_screenwriter->PrintHex(regs->rdx);
-    g_screenwriter->Print("\r\n");
+    gScreenwriter->print("\trsi:", false);
+    gScreenwriter->printHex(regs->rsi, false);
+    gScreenwriter->print("\r\n", false);
 
-    g_screenwriter->Print("r11: ");
-    g_screenwriter->PrintHex(regs->r11);
+    gScreenwriter->print("r12: ", false);
+    gScreenwriter->printHex(regs->r12, false);
 
-    g_screenwriter->Print("\trcx: ");
-    g_screenwriter->PrintHex(regs->rcx);
-    g_screenwriter->Print("\r\n");
+    gScreenwriter->print("\trdx: ", false);
+    gScreenwriter->printHex(regs->rdx, false);
+    gScreenwriter->print("\r\n", false);
 
-    g_screenwriter->Print("r10: ");
-    g_screenwriter->PrintHex(regs->r10);
+    gScreenwriter->print("r11: ", false);
+    gScreenwriter->printHex(regs->r11, false);
 
-    g_screenwriter->Print("\trbx: ");
-    g_screenwriter->PrintHex(regs->rbx);
-    g_screenwriter->Print("\r\n");
+    gScreenwriter->print("\trcx: ", false);
+    gScreenwriter->printHex(regs->rcx, false);
+    gScreenwriter->print("\r\n", false);
 
-    g_screenwriter->Print("r9: ");
-    g_screenwriter->PrintHex(regs->r9);
+    gScreenwriter->print("r10: ", false);
+    gScreenwriter->printHex(regs->r10, false);
 
-    g_screenwriter->Print("\t rax: ");
-    g_screenwriter->PrintHex(regs->rax);
-    g_screenwriter->Print("\r\n");
+    gScreenwriter->print("\trbx: ", false);
+    gScreenwriter->printHex(regs->rbx, false);
+    gScreenwriter->print("\r\n", false);
 
-    g_screenwriter->Print("r8: ");
-    g_screenwriter->PrintHex(regs->r8);
+    gScreenwriter->print("r9: ", false);
+    gScreenwriter->printHex(regs->r9, false);
 
-    g_screenwriter->Print("\r\n");
+    gScreenwriter->print("\t rax: ", false);
+    gScreenwriter->printHex(regs->rax, false);
+    gScreenwriter->print("\r\n", false);
 
+    gScreenwriter->print("r8: ", false);
+    gScreenwriter->printHex(regs->r8, false);
+
+    gScreenwriter->print("\r\n", false);
 }
 
-void isr_handler(struct Registers *regs) {
-    g_screenwriter->Clear(EXCEPTION_CLEAR_COLOR);
+
+void isr_handler(struct Registers *regs)
+{
+    gScreenwriter->clear(EXCEPTION_CLEAR_COLOR);
 
     // Handle the interrupt based on interrupt number
-    switch(regs->int_no) {
-        case 0:
-            g_screenwriter->Print("Exception: Division by Zero.\n\r");
-            break;
-        case 13:
-            g_screenwriter->Print("Exception: General protection fault.\n\r");
-            break;
-        case 14:
-            g_screenwriter->Print("Exception: Page fault.\n\r");
-            break;
-        default:
-            g_screenwriter->Print("Exception: Unknown interrupt.\r\n");
-            break;
+    switch (regs->int_no)
+    {
+    case 0:
+        gScreenwriter->print("Exception: Division by Zero.\n\r", false);
+        break;
+    case 13:
+        gScreenwriter->print("Exception: General protection fault.\n\r", false);
+        break;
+    case 14:
+        gScreenwriter->print("Exception: Page fault.\n\r", false);
+        break;
+    default:
+        gScreenwriter->print("Exception: Unknown interrupt.\r\n", false);
+        break;
     }
 
     print_registers(regs);
 
-    while(1) { __asm__ volatile("hlt"); }  
-
-
-
+    while (1)
+    {
+        __asm__ volatile("hlt");
+    }
 }
 
-extern "C" void irq_handler(struct Registers *regs) {
+
+extern "C" void irq_handler(struct Registers *regs)
+{
     uint8_t irq = regs->int_no - 32;
 
-    if (irq == 0) {
-        Timer::OnInterrupt();
+    if (irq == 0)
+    {
+        Timer::onInterrupt();
         PIC::SendEOI(irq);
-        Scheduler::Schedule();
-        return; 
+        gScheduler->Schedule();
+        return;
     }
 
-    switch(irq) {
-        case 1:
-            Keyboard::OnInterrupt();
-            break;
-        default:
-            g_screenwriter->Print("IRQ ");
-            g_screenwriter->PrintHex(irq);
-            g_screenwriter->Print("\n\r");
-            break;
+    switch (irq)
+    {
+    case 1:
+        Keyboard::OnInterrupt();
+        break;
+    default:
+        gScreenwriter->print("IRQ ", false);
+        gScreenwriter->printHex(irq, false);
+        gScreenwriter->print("\n\r", false);
+        break;
     }
 
     PIC::SendEOI(irq);

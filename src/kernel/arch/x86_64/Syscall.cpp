@@ -2,7 +2,7 @@
 #include <arch/x86_64/ScreenWriter.hpp>
 #include <arch/x86_64/Multitasking/Scheduler.hpp>
 #include <globals.hpp>
-#include <arch/x86_64/Drivers/Keyboard.hpp>
+#include <Drivers/Input/Keyboard.hpp>
 
 // MSR Address constants
 #define MSR_EFER         0xC0000080
@@ -24,22 +24,14 @@ static inline uint64_t rdmsr(uint32_t msr) {
 }
 
 void Syscall::Initialize() {
-    // 1. Enable SCE (System Call Extensions) in EFER
     uint64_t efer = rdmsr(MSR_EFER);
     wrmsr(MSR_EFER, efer | 1);
 
-    // 2. Set the address of our assembly 'syscall_entry' in LSTAR
     wrmsr(MSR_LSTAR, (uint64_t)syscall_entry);
 
-    // 3. Set up selectors in STAR
-    // Bits 32-47: Kernel CS/SS (0x08)
-    // Bits 48-63: User CS/SS (0x13 or 0x1B depending on your GDT)
-    // Note: STAR expects the base, sysret adds +8 or +16 to find the actual selectors
     uint64_t star = (0x13ULL << 48) | (0x08ULL << 32);
     wrmsr(MSR_STAR, star);
 
-    // 4. Set RFLAGS mask in SFMASK
-    // We mask the Interrupt Flag (0x200) to disable interrupts during syscall entry
     wrmsr(MSR_SFMASK, 0x200);
 }
 
@@ -51,11 +43,11 @@ extern "C" uint64_t syscall_handler(uint64_t arg1, uint64_t arg2, uint64_t arg3,
 uint64_t Syscall::Handler(uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t num) {
     switch (num) {
         case PRINT:
-            g_screenwriter->Print((const char*)arg1);
+            gScreenwriter->print((const char*)arg1, false);
             return 0;
 
         case EXIT:
-            Scheduler::ExitTask();
+            gScheduler->Yield();
             return 0;
 
         case GET_CHAR:
@@ -63,8 +55,8 @@ uint64_t Syscall::Handler(uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t 
             return (uint64_t)Keyboard::GetChar();
 
         case CLEAR:
-            g_screenwriter->Clear(arg1);
-            g_screenwriter->SetCursor(0, 0);
+            gScreenwriter->clear(arg1);
+            gScreenwriter->setCursor(0, 0);
             return 0;
 
         default:
