@@ -190,6 +190,24 @@ def cleanup():
     os.system(f"rm -ri {TOOLCHAIN_FOLDER}/build-gcc-{GCC_VER}")
     return
 
+#!   |
+#!   |    Todo: Needs testing
+#!   v
+def install_deps():
+
+    # Clones EDK2 from tianocore and builds it + sets all exports for the image build process.
+    os.system("cd "+ TOOLCHAIN_FOLDER)
+    os.system("git clone https://github.com/tianocore/edk2.git")
+    os.system("cd edk2/")
+    os.system(f"export EDK2_DIR=\"{TOOLCHAIN_FOLDER}/edk2\"")
+    os.system(f"export WORKSPACE=$EDK2_DIR/Build")
+    os.system(f"export EDK_TOOLS_PATH=$EDK2_DIR/BaseTools")
+    os.system("source $EDK2_DIR/edksetup.sh")
+    os.system("make -C BaseTools")
+
+
+    return
+
 def bootstrap_toolchain():
     if not os.path.exists(TOOLCHAIN_FOLDER):
         os.mkdir(TOOLCHAIN_FOLDER)
@@ -198,7 +216,7 @@ def bootstrap_toolchain():
     install_nasm()
     download_binutils()
     download_gcc()
-    print("Now you can delete the build folders in the toolchain folder! (do not delete \"i686-elf\")")
+    print("Now you can delete the build folders in the toolchain folder! (do not delete \"x86_64-elf\")")
     #cleanup()
 
 if __name__ == "__main__":
@@ -210,3 +228,13 @@ if __name__ == "__main__":
     install_nasm()
     download_binutils()
     download_gcc()
+
+
+# git clone https://github.com/tianocore/edk2.git 
+# cd ~/edk2
+# git submodule update --init
+# make -C BaseTools
+# export EDK2_DIR="$HOME/NeoOS/toolchain/edk2"
+# export WORKSPACE=$EDK2_DIR/Build
+# export EDK_TOOLS_PATH=$EDK2_DIR/BaseTools
+# source $EDK2_DIR/edksetup.sh

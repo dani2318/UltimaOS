@@ -1,0 +1,49 @@
+import os
+from SCons.Environment import Environment
+from scripts.build_scripts.utility import GlobRecursive, FindIndex, IsFileName
+
+Import('TARGET_ENVIRONMENT')
+TARGET_ENVIRONMENT: Environment
+
+env = TARGET_ENVIRONMENT.Clone()
+
+# 1. Architecture-aware flags
+if env['arch'] == 'x86_64':
+    as_format = 'elf64'
+    output_name = 'kernel.efi'
+else:
+    # Fallback for i686 (Legacy/Multiboot)
+    target_flags = [] 
+    as_format = 'elf'
+    output_name = 'kernel.bin'
+
+env.Append(
+    CCFLAGS = [
+        '-ffreestanding',
+        '-fno-stack-protector',
+        '-mno-red-zone' if env['arch'] == 'x86_64' else '',
+    ],
+    LINKFLAGS = [
+        '-Wl,-T', env.File('linker.ld').srcnode().path,
+        '-Wl,-Map=' + env.File('kernel.map').path,
+        '-nostdlib',
+    ],
+    LIBS = ['core', 'gcc'],
+    CPATH = [ env.Dir('.').srcnode() ],
+    CPPPATH = [ env.Dir('.').srcnode(), env['ROOTDIR'].Dir('src/libs/core') ],
+    ASFLAGS = [ '-I', env.Dir('.').srcnode(), '-f', as_format ]
+)
+
+# 2. Collect sources
+sources = GlobRecursive(env, '*.c') + \
+          GlobRecursive(env, '*.cpp') + \
+          GlobRecursive(env, '*.asm')
+
+objects = env.Object(sources)
+
+# 3. Build and Return
+kernel_elf = env.Program(output_name, objects)
+kernel = env.Command('kernel.bin', kernel_elf, 
+    "objcopy -O binary $SOURCE $TARGET")
+Export('kernel')
+Return('kernel')

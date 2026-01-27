@@ -1,0 +1,14 @@
+CompileFlags:
+  CompilationDatabase: ${workspaceFolder}
+
+Index:
+  Background: Build
+
+Diagnostics:
+  UnusedIncludes: Strict
+  ClangTidy:
+    Add:
+      - readability-*
+      - bugprone-*
+    Remove:
+      - readability-magic-numbers

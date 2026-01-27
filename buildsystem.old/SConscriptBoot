@@ -1,0 +1,50 @@
+import os
+from scripts.build_scripts.utility import GlobRecursive
+
+Import('HOST_ENVIRONMENT')
+env = HOST_ENVIRONMENT.Clone()
+# 1. Verification of WSL Paths
+crt0_path = '/usr/lib/crt0-efi-x86_64.o'
+lds_path = '/usr/lib/elf_x86_64_efi.lds'
+
+# Search for sources in the actual source directory, not the variant directory
+# env.Dir('.').srcnode() points to 'src/uefi_boot' regardless of 'build/...'
+src_dir = env.Dir('.').srcnode()
+sources = GlobRecursive(env, str(src_dir) + '/*.c')
+
+env.Append(
+    CPPPATH = [
+        '/usr/include/efi',
+        '/usr/include/efi/x86_64',
+        '/usr/include/efi/protocol',
+        src_dir # Add source dir to include path
+    ],
+    LIBPATH = ['/usr/lib'],
+    CCFLAGS = ['-ffreestanding', '-fno-stack-protector', '-fshort-wchar', '-mno-red-zone'],
+    LINKFLAGS = ['-nostdlib', '-shared', '-Wl,-Bsymbolic', '-T', lds_path]
+)
+
+bootloader = None
+if not os.path.exists(crt0_path):
+    print(f"!!! Error: {crt0_path} missing. Run 'sudo apt install gnu-efi'")
+elif not sources:
+    print(f"!!! Error: No .c files found in {src_dir}")
+else:
+    bootloader_elf = env.Program(
+        target='BOOTX64.so', 
+        source=[crt0_path] + sources,
+        LIBS=['efi', 'gnuefi']
+    )
+
+    # 2. Convert that ELF file into the final EFI binary.
+    # The target here is the actual BOOTX64.EFI
+    bootloader = env.Command(
+        target='BOOTX64.EFI',
+        source=bootloader_elf,
+        action="objcopy -j .text -j .sdata -j .data -j .dynamic -j .dynsym "
+            "-j .rel -j .rela -j .rel.* -j .rela.* -j .reloc "
+            "--target=efi-app-x86_64 $SOURCE $TARGET"
+    )
+
+Export('bootloader')
+Return('bootloader')

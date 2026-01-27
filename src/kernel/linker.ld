@@ -1,16 +1,56 @@
 ENTRY(start)
-OUTPUT_FORMAT("elf32-i386")
-phys = 0x00100000;
+OUTPUT_FORMAT("elf64-x86-64")
+
+PHDRS
+{
+    text    PT_LOAD FLAGS(5); /* R + X */
+    rodata  PT_LOAD FLAGS(4); /* R */
+    data    PT_LOAD FLAGS(6); /* R + W */
+}
 
 SECTIONS
 {
-    . = phys;
+    . = 0x2000000;
+    _kernel_start = .;
 
-    .entry              : { __entry_start = .;      *(.entry)   }
-    .text               : { __text_start = .;       *(.text)    }
-    .data               : { __data_start = .;       *(.data)    }
-    .rodata             : { __rodata_start = .;     *(.rodata)  }
-    .bss                : { __bss_start = .;        *(.bss)     }
-    
-    __end = .;
+    .text : ALIGN(4K)
+    {
+        *(.text.start)
+        *(.text .text.*)
+    } :text
+
+    .rodata : ALIGN(4K)
+    {
+        *(.rodata .rodata.*)
+
+        /* C++ Constructors */
+        . = ALIGN(8);
+        __init_array_start = .;
+        KEEP(*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
+        KEEP(*(.init_array .ctors))
+        __init_array_end = .;
+
+        /* C++ Destructors (optional, but good to have) */
+        . = ALIGN(8);
+        __fini_array_start = .;
+        KEEP(*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*)))
+        KEEP(*(.fini_array .dtors))
+        __fini_array_end = .;
+    } :rodata
+
+    .data : ALIGN(4K)
+    {
+        *(.data .data.*)
+    } :data
+
+    .bss : ALIGN(4K)
+    {
+        *(COMMON)
+        *(.bss .bss.*)
+    } :data
+
+    _kernel_end = .;
 }
+
+/* Provide additional symbols for debugging */
+PROVIDE(_kernel_size = _kernel_end - _kernel_start);

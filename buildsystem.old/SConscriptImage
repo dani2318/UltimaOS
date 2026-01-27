@@ -1,0 +1,112 @@
+import os
+import sh
+import parted
+from SCons.Action import Action
+
+Import('TARGET_ENVIRONMENT')
+Import('bootloader') 
+Import('kernel')     
+
+image = None 
+
+if bootloader is None or kernel is None:
+    print(f"!!! Skipping Image: Bootloader={bootloader}, Kernel={kernel}")
+    Return('image')
+
+env = TARGET_ENVIRONMENT
+SECTOR_SIZE = 512
+
+# Flatten inputs
+inputs = []
+for item in [bootloader, kernel]:
+    if isinstance(item, list): inputs.extend(item)
+    else: inputs.append(item)
+
+def generate_empty_file(target, size_sectors):
+    with open(target, 'wb') as f:
+        f.truncate(size_sectors * SECTOR_SIZE)
+import time
+
+def create_uefi_disk(target, source, env):
+    image_path = os.path.abspath(str(target[0]))
+    efi_loader = os.path.abspath(str(source[0]))
+    kernel_bin = os.path.abspath(str(source[1]))
+    
+    size_sectors = (env['imageSize'] + SECTOR_SIZE - 1) // SECTOR_SIZE
+    partition_offset = 2048 
+
+    # 1. Create the empty disk image
+    print(f"> Generating {image_path}...")
+    generate_empty_file(image_path, size_sectors)
+
+    # 2. Create GPT Partition Table
+    print(f"> Creating GPT Partition Table...")
+    device = parted.getDevice(image_path)
+    disk = parted.freshDisk(device, 'gpt')
+    
+    # Calculate end sector (GPT needs space at the end for the backup header)
+    # 34 sectors is the standard GPT header size
+    end_sector = size_sectors - 34
+    
+    geometry = parted.Geometry(device, start=partition_offset, end=end_sector)
+    partition = parted.Partition(disk=disk, type=parted.PARTITION_NORMAL, geometry=geometry)
+    partition.setFlag(parted.PARTITION_ESP)
+    disk.addPartition(partition, constraint=device.optimalAlignedConstraint)
+    
+    # Commit writes the table to the file
+    disk.commit()
+    
+    # Instead of device.sync() which fails on WSL files:
+    # We close the file handles manually to force the OS to flush
+    del disk
+    del device
+    
+    # Small grace period for WSL filesystem to catch up
+    with open(image_path, 'a') as f:
+        os.fsync(f.fileno())
+    time.sleep(0.1)
+
+    # 3. Format as FAT32
+    print(f"> Formatting ESP as FAT32...")
+    mkfs_cmd = "mkfs.fat"
+    if not sh.which(mkfs_cmd):
+        mkfs_cmd = "/sbin/mkfs.fat"
+
+    # We use the -S flag for physical sector size consistency
+    sh.Command(mkfs_cmd)("-F", "32", "-n", "ESP", "--offset", str(partition_offset), "-S", "512", image_path)
+
+    # 4. Copy UEFI Files using mcopy
+    print(f"> Copying UEFI bootloader and kernel...")
+    mtools_env = os.environ.copy()
+    conf_path = f"{image_path}.mconf"
+    
+    with open(conf_path, 'w') as f:
+        # Simplified: drive x: file="PATH" offset=BYTES
+        # Removed mpartition as it causes syntax errors on some versions
+        f.write(f'drive x: file="{image_path}" offset={partition_offset * SECTOR_SIZE}\n')
+    
+    mtools_env['MTOOLSRC'] = conf_path
+
+    try:
+        # mtools requires '::' or 'x:' prefix to know it's looking at the conf drive
+        # We use 'x:' as defined in the conf_path above
+        sh.mmd("-D", "O", "x:/EFI", _env=mtools_env)
+        sh.mmd("-D", "O", "x:/EFI/BOOT", _env=mtools_env)
+        sh.mmd("-D", "O", "x:/NEOOS", _env=mtools_env)
+        
+        sh.mcopy("-o", efi_loader, "x:/EFI/BOOT/BOOTX64.EFI", _env=mtools_env)
+        sh.mcopy("-o", kernel_bin, "x:/NEOOS/KERNEL.BIN", _env=mtools_env)
+        sh.mcopy("-o", "src/assets/zap-light16.psf", "x:/NEOOS/FONT.PSF", _env=mtools_env)
+        print("Done. Image is UEFI bootable.")
+    finally:
+        if os.path.exists(conf_path):
+            os.remove(conf_path)
+# SCons setup
+output = 'image.img'
+image = env.Command(
+    output, 
+    inputs, 
+    action=Action(create_uefi_disk, '[Creating UEFI Disk Image] --> $TARGET')
+)
+
+Return('image')

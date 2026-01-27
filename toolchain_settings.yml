@@ -1,7 +1,7 @@
 ADVANCED:
   JOBS: 16
 Build Info:
-  TARGET: i686-elf
+  TARGET: x86_64-elf
 Executables:
   NASM_EXE_WIN: nasm-NASM_VERSION-installer-x64.exe
 Toolchain Versions:
@@ -10,5 +10,5 @@ Toolchain Versions:
   NASM_VERSION: 2.16.03
 Urls:
   BINUTILS_URL: https://ftp.gnu.org/gnu/binutils/binutils-BINUTILS_VERSION.tar.gz
-  GCC_URL: https://ftp.gnu.org/gnu/gcc/gcc-15.1.0/gcc-GCC_VERSION.tar.gz
+  GCC_URL: https://gcc.gnu.org/pub/gcc/releases/gcc-GCC_VERSION/gcc-GCC_VERSION.tar.gz
   NASM_URL_WIN: https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/win64/nasm-NASM_VERSION-installer-x64.exe

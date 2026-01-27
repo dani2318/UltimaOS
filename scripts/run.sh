@@ -1,19 +1,24 @@
 #!/usr/bin/sh
 
 mkdir -p logs/
-
 date=$(date '+%d-%m-%Y--%H.%M.%S')
 logfile="logs/qemu-logs-$date.log"
-touch "$logfile"
+# touch "$logfile" # Not strictly needed if using stdio
 
-# Absolute path
-path_to="$(pwd)/$logfile"
+# 1. Locate OVMF (UEFI Firmware)
+# On WSL Ubuntu, this is the standard path after 'sudo apt install ovmf'
+OVMF_PATH="/usr/share/ovmf/OVMF.fd"
 
-echo "$path_to"
-#QEMU_ARGS="-debugcon file:${path_to} -m 32"
-QEMU_ARGS="-debugcon stdio -m 32 -d int,cpu_reset  -no-reboot -no-shutdown"
-#QEMU_ARGS="-debugcon stdio -m 32 -d int -no-reboot -no-shutdown"
-#QEMU_ARGS="-debugcon stdio -m 32  -no-reboot -no-shutdown"
+if [ ! -f "$OVMF_PATH" ]; then
+    echo "Error: OVMF firmware not found at $OVMF_PATH"
+    echo "Please run: sudo apt install ovmf"
+    exit 3
+fi
+
+# 2. Base QEMU Arguments
+# Note: x86_64 is required for UEFI BOOTX64.EFI
+QEMU="qemu-system-x86_64"
+QEMU_ARGS="-cpu qemu64 -m 4G -no-reboot -no-shutdown -serial stdio -d int,guest_errors -D qemu.log -bios $OVMF_PATH"
 
 if [ "$#" -le 1 ]; then
     echo "Usage: ./run.sh <image_type> <image>"
@@ -21,12 +26,20 @@ if [ "$#" -le 1 ]; then
 fi
 
 case "$1" in
-    "floppy")   QEMU_ARGS="${QEMU_ARGS} -drive file=$2,format=raw,if=floppy"
+    "floppy")
+        # UEFI rarely boots from legacy floppy; usually treated as a small disk
+        QEMU_ARGS="${QEMU_ARGS} -drive file=$2,format=raw,if=floppy"
     ;;
-    "disk")     QEMU_ARGS="${QEMU_ARGS} -drive file=$2,format=raw,if=ide"
+    "disk")
+        # Standard drive mapping
+        QEMU_ARGS="${QEMU_ARGS} -drive file=$2,format=raw"
     ;;
-    *)          echo "Unknown image type $1."
-                exit 2
+    *)
+        echo "Unknown image type $1."
+        exit 2
 esac
 
-qemu-system-i386 $QEMU_ARGS
+# 4. Run QEMU
+# If you are in WSL without a GUI, add -nographic or -display curses
+echo "Launching QEMU..."
+$QEMU $QEMU_ARGS

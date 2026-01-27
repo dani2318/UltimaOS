@@ -1,5 +1,5 @@
 #config = 'release'
-arch = 'i686'
+arch = 'x86_64'
 #imageType = 'disk'
 #imageFS = 'fat32'
 #imageSize = '250m'

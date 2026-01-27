@@ -4,16 +4,22 @@
             "name": "i686-elf",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/toolchain/i686-elf/lib/gcc/i686-elf/15.1.0/include/*",
-                "${workspaceFolder}/src/kernel"
+                "${workspaceFolder}/toolchain/x86_64-elf/lib/gcc/x86_64-elf/15.1.0/include/*",
+                "${workspaceFolder}/src/kernel",
+                "/usr/include/efi",
+                "/usr/include/efi/x86_64"
             ],
-            "defines": [],
-            "compilerPath": "${workspaceFolder}/toolchain/i686-elf/bin/i686-elf-g++",
-            "cStandard": "c99",
+            "defines": [
+                "__KERNEL__",
+                "__x86_64__",
+                "__FREESTANDING__"
+            ],
+            "compilerPath": "${workspaceFolder}/toolchain/x86_64-elf/bin/x86_64-elf-gcc",
+            "cStandard": "c23",
             "cppStandard": "c++17",
-            "intelliSenseMode": "gcc-x86",
+            "intelliSenseMode": "linux-gcc-x64",
             "compilerArgs": [
-                "-std=c99",
+                "-std=c11",
                 "-g",
                 "-ffrestanding",
                 "-nostdlib",
