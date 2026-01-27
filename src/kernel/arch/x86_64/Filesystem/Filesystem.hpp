@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
-#include <Drivers/HAL/HAL.hpp>
+#include <arch/x86_64/Drivers/HAL/HAL.hpp>
 #include <memory/memory.hpp>
 #include <arch/x86_64/Serial.hpp>
 #include <globals.hpp>
@@ -10,7 +10,6 @@
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/UefiBootServicesTableLib.h>
-#include <arch/x86_64/ScreenWriter.hpp>
 
 class FileSystem
 {
@@ -48,13 +47,9 @@ public:
             (void **)&fs);
         if (EFI_ERROR(status))
         {
-<<<<<<< Updated upstream:src/kernel/Drivers/Storage/Filesystem/Filesystem.hpp
-            gScreenwriter->print("FS: Failed to open FS protocol\n", true);
-=======
             g_serialWriter->Print("FS: Failed to open FS protocol (status=0x");
             g_serialWriter->PrintHex(status);
             g_serialWriter->Print(")\n");
->>>>>>> Stashed changes:src/kernel/arch/x86_64/Filesystem/Filesystem.hpp
             return nullptr;
         }
 
@@ -62,13 +57,9 @@ public:
         status = fs->OpenVolume(fs, &root);
         if (EFI_ERROR(status))
         {
-<<<<<<< Updated upstream:src/kernel/Drivers/Storage/Filesystem/Filesystem.hpp
-            gScreenwriter->print("FS: Failed to open root volume\n", true);
-=======
             g_serialWriter->Print("FS: Failed to open root volume (status=0x");
             g_serialWriter->PrintHex(status);
             g_serialWriter->Print(")\n");
->>>>>>> Stashed changes:src/kernel/arch/x86_64/Filesystem/Filesystem.hpp
             return nullptr;
         }
 
@@ -76,12 +67,6 @@ public:
         status = root->Open(root, &file, path, EFI_FILE_MODE_READ, 0);
         if (EFI_ERROR(status))
         {
-<<<<<<< Updated upstream:src/kernel/Drivers/Storage/Filesystem/Filesystem.hpp
-            gScreenwriter->print("FS: File not found: ", true);
-            gScreenwriter->print(path8, true);
-            gScreenwriter->print("\n", true);
-            return nullptr; // << immediately return
-=======
             g_serialWriter->Print("FS: File not found: ");
             g_serialWriter->Print(path8);
             g_serialWriter->Print(" (status=0x");
@@ -89,35 +74,25 @@ public:
             g_serialWriter->Print(")\n");
             root->Close(root);
             return nullptr;
->>>>>>> Stashed changes:src/kernel/arch/x86_64/Filesystem/Filesystem.hpp
         }
 
         // Get file size
         UINTN buf_size = sizeof(EFI_FILE_INFO) + 256;
-<<<<<<< Updated upstream:src/kernel/Drivers/Storage/Filesystem/Filesystem.hpp
-        EFI_FILE_INFO *info = (EFI_FILE_INFO *)gHeap.alloc(buf_size);
-        if (!info)
-=======
         EFI_FILE_INFO *info = (EFI_FILE_INFO *)g_heap.Alloc(buf_size);
         if (!info) {
             g_serialWriter->Print("FS: Failed to allocate info buffer\n");
             file->Close(file);
             root->Close(root);
->>>>>>> Stashed changes:src/kernel/arch/x86_64/Filesystem/Filesystem.hpp
             return nullptr;
         }
 
         status = file->GetInfo(file, &gEfiFileInfoGuid, &buf_size, info);
         if (EFI_ERROR(status))
         {
-<<<<<<< Updated upstream:src/kernel/Drivers/Storage/Filesystem/Filesystem.hpp
-            gScreenwriter->print("FS: Failed to get file info\n", true);
-=======
             g_serialWriter->Print("FS: Failed to get file info (status=0x");
             g_serialWriter->PrintHex(status);
             g_serialWriter->Print(")\n");
             g_heap.Free(info);
->>>>>>> Stashed changes:src/kernel/arch/x86_64/Filesystem/Filesystem.hpp
             file->Close(file);
             root->Close(root);
             return nullptr;
@@ -145,13 +120,6 @@ public:
         }
 
         // Allocate buffer
-<<<<<<< Updated upstream:src/kernel/Drivers/Storage/Filesystem/Filesystem.hpp
-        UINTN read_size = info->FileSize;
-        void *buffer = gHeap.alloc(read_size);
-        if (!buffer)
-        {
-            gScreenwriter->print("FS: Heap allocation failed\n", true);
-=======
         void *buffer = g_heap.Alloc(file_size);
         if (!buffer)
         {
@@ -159,7 +127,6 @@ public:
             char size_buf[32];
             g_serialWriter->Print(itoa(file_size, size_buf, 10));
             g_serialWriter->Print(" bytes\n");
->>>>>>> Stashed changes:src/kernel/arch/x86_64/Filesystem/Filesystem.hpp
             file->Close(file);
             root->Close(root);
             return nullptr;
@@ -170,15 +137,10 @@ public:
         status = file->Read(file, &read_size, buffer);
         if (EFI_ERROR(status))
         {
-<<<<<<< Updated upstream:src/kernel/Drivers/Storage/Filesystem/Filesystem.hpp
-            gScreenwriter->print("FS: File read failed\n", true);
-            gHeap.free(buffer);
-=======
             g_serialWriter->Print("FS: File read failed (status=0x");
             g_serialWriter->PrintHex(status);
             g_serialWriter->Print(")\n");
             g_heap.Free(buffer);
->>>>>>> Stashed changes:src/kernel/arch/x86_64/Filesystem/Filesystem.hpp
             file->Close(file);
             root->Close(root);
             return nullptr;

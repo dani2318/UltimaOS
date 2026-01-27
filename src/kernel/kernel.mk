@@ -62,7 +62,7 @@ KERNEL_LIBS := -lcore -lgcc
 
 # Add kernel-specific flags
 CFLAGS += $(KERNEL_CFLAGS) $(INCLUDES) $(EDK2_INC) -fshort-wchar
-CXXFLAGS += $(KERNEL_CFLAGS) $(INCLUDES) $(EDK2_INC) -fshort-wchar
+CXXFLAGS += $(KERNEL_CFLAGS) $(INCLUDES) $(EDK2_INC) -fshort-wchar --std=c++23
 ASFLAGS += -I$(SRC_DIR)
 
 # ============================================================================
