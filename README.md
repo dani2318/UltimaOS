@@ -1,10 +1,10 @@
-# NeoOS
+# UltimaOS
 
-NeoOS is an operating system project designed for educational and experimental purposes. This repository contains all the necessary files to build, run, and explore NeoOS.
+UltimaOS is an operating system project designed for educational and experimental purposes. This repository contains all the necessary files to build, run, and explore NeoOS.
 
 ## Prerequisites
 
-Before working with NeoOS, ensure you have Python and gcc installed on your system as it is required to set up the toolchain; and qemu to run the OS image and nasm to build the assembly part of the project.
+Before working with UltimaOS, ensure you have Python and gcc installed on your system as it is required to set up the toolchain; and qemu to run the OS image and nasm to build the assembly part of the project.
 
 ## Setting Up the Toolchain
 
