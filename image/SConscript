@@ -180,8 +180,9 @@ def build_floppy(image, stage1, stage2, kernel, files, env):
 
     print(f"> copying files...")
     print('    ... copying', kernel)
-    sh.mmd('-i', image, "::boot")
-    sh.mcopy('-i', image, kernel, "::boot/")
+    sh.mmd('-i', image, "::NeoOS")
+    sh.mmd('-i', image, "::NeoOS/System")
+    sh.mcopy('-i', image, kernel, "::NeoOS/System/")
 
     # copy rest of files
     copy_files_with_mtools(image, files, env)
@@ -235,8 +236,9 @@ def build_disk(image, stage1, stage2, kernel, files, env):
     try:
         # copy kernel
         print(f"    ... copying kernel...")
-        sh.mmd("x:/boot", _env=mtools_env)
-        sh.mcopy(kernel, "x:/boot/", _env=mtools_env)
+        sh.mmd("x:/NeoOS", _env=mtools_env)
+        sh.mmd("x:/NeoOS/System", _env=mtools_env)
+        sh.mcopy(kernel, "x:/NeoOS/System/", _env=mtools_env)
 
         # copy rest of files
         copy_files_with_mtools(image, files, env, offset=partition_offset)
@@ -276,4 +278,5 @@ image = env.Command(output, inputs,
                     action=Action(build_image, 'Creating disk image...'), 
                     BASEDIR=root.srcnode().path)
 
+env.Depends(image,inputs)
 Export('image')

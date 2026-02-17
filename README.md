@@ -39,7 +39,7 @@ Once the toolchain is set up, you can proceed to build the repository. Use the f
 2. Build the project:
     
     ```bash
-    make
+    scons
     ```
     
     This will compile all the necessary components of NeoOS.
@@ -50,7 +50,7 @@ Once the toolchain is set up, you can proceed to build the repository. Use the f
 After building the project, you can run NeoOS using an emulator such as QEMU. Use the following command:
 
 ```bash
-make run
+scons run
 ```
 
 This will launch NeoOS in QEMU, allowing you to test and explore the operating system.

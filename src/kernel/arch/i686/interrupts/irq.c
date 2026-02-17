@@ -1,6 +1,6 @@
 #include <arch/i686/interrupts/irq.h>
 #include <arch/i686/io.h>
-#include "stdio.h"
+#include <stdio.h>
 #include <util/arrays.h>
 #include <stddef.h>
 

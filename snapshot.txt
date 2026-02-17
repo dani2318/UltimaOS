@@ -1,0 +1,25 @@
+[Stage2] [OK] Initialize disk!
+[Stage2] base=0x
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

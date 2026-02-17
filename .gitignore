@@ -6,3 +6,6 @@ p1
 __pycache__
 
 */*.log
+elf_info.info
+logs/*
+*/*.old

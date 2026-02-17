@@ -3,21 +3,23 @@
 #include <arch/i686/io.h>
 #include <arch/i686/interrupts/irq.h>
 #include <arch/generic/cpu.h>
+#include <arch/vga_text.h>
 
 #include "stdio.h"
 #include "memory.h"
+#include "debug.h"
+
+extern void _init();
 
 void timer(Registers* regs){
 }
 
-extern uint8_t __bss_start;
-extern uint8_t __end;
 
-void __attribute__((section(".entry"))) start(uint16_t bootDrive){
+void start(uint16_t bootDrive){
+    // call global constructors
+    _init();
 
-    memset(&__bss_start, 0, (&__end) - (&__bss_start));
-
-    clrscr();
+    VGA_clrscr();
     printf("Loaded Kernel !!!\r\n");
 
     HAL_Inizialize();
@@ -27,7 +29,6 @@ void __attribute__((section(".entry"))) start(uint16_t bootDrive){
     i686_IRQ_RegisterHandler(0, timer);
 
     print_cpu_info();
-
 
     end:
         for(;;);
